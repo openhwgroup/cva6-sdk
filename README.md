@@ -1,6 +1,6 @@
 # Ariane SDK
 
-This repository houses a set of RISCV tools for the [ariane core](https://github.com/pulp-platform/ariane). It contains some small changes to the official [riscv-tools](https://github.com/riscv/riscv-tools). Most importantly it **does not contain openOCD**.
+This repository houses a set of RISCV tools for the [ariane core](https://github.com/pulp-platform/ariane). It contains some small modifications to the official [riscv-tools](https://github.com/riscv/riscv-tools). Most importantly it **does not contain openOCD**.
 
 Included tools:
 * [Spike](https://github.com/riscv/riscv-isa-sim/), the ISA simulator
@@ -21,13 +21,23 @@ Requirements Fedora:
 $ sudo dnf install autoconf automake @development-tools curl dtc libmpc-devel mpfr-devel gmp-devel libusb-devel gawk gcc-c++ bison flex texinfo gperf libtool patchutils bc zlib-devel expat-devel
 ```
 
+Then install the tools with
+
 ```console
 $ git submodule update --init --recursive
 $ export RISCV=/path/to/install/riscv/toolchain # default: ./install
 $ make all
 ```
 
-Add `$RISCV/bin` to your path in order to later make use of the installed tools.
+## Environment Variables
+
+Add `$RISCV/bin` to your path in order to later make use of the installed tools and permanently export `$RISCV`. 
+
+Example for `.bashrc` or `.zshrc`:
+```bash
+export RISCV=/opt/riscv
+export PATH=$PATH:$RISCV/bin
+```
 
 ## OpenOCD - Optional
 If you really need and want to debug on an FPGA/ASIC target the installation instructions are [here](https://github.com/riscv/riscv-openocd). 
