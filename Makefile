@@ -30,6 +30,16 @@ tests-mk         		= -j$(NR_CORES)
 install-dir:
 	mkdir -p $(RISCV)
 
+
+gnu-toolchain: install-dir
+	mkdir -p riscv-gnu-toolchain/build
+	cd riscv-gnu-toolchain/build;\
+	../configure $(gnu-toolchain-co);\
+	make $(gnu-toolchain-newlib-mk);\
+	make $(gnu-toolchain-libc-mk);\
+	cd $(ROOT)
+	# make install;
+	
 fesvr: install-dir
 	mkdir -p riscv-fesvr/build
 	cd riscv-fesvr/build;\
@@ -46,15 +56,6 @@ isa-sim: install-dir
 	make install;\
 	cd $(ROOT)
 
-gnu-toolchain: install-dir
-	mkdir -p riscv-gnu-toolchain/build
-	cd riscv-gnu-toolchain/build;\
-	../configure $(gnu-toolchain-co);\
-	make $(gnu-toolchain-newlib-mk);\
-	make $(gnu-toolchain-libc-mk);\
-	cd $(ROOT)
-	# make install;
-	
 tests: install-dir
 	mkdir -p riscv-tests/build
 	cd riscv-tests/build;\
@@ -72,7 +73,7 @@ pk: install-dir
 	make install;\
 	cd $(ROOT)
 
-all: fesvr isa-sim gnu-toolchain tests pk
+all: gnu-toolchain fesvr isa-sim tests pk
 
 clean:
 	rm -rf install riscv-fesvr/build riscv-isa-sim/build riscv-gnu-toolchain/build riscv-tests/build riscv-pk/build
