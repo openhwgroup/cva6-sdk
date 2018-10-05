@@ -12,4 +12,4 @@
 	url = git@github.com:riscv/riscv-gnu-toolchain.git
 [submodule "riscv-fesvr"]
 	path = riscv-fesvr
-	url = git@github.com:pulp-platform/riscv-fesvr.git
+	url = git@github.com:riscv/riscv-fesvr.git
