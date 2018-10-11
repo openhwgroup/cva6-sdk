@@ -1,15 +1,15 @@
 [submodule "riscv-tests"]
 	path = riscv-tests
-	url = git@github.com:riscv/riscv-tests.git
+	url = https://github.com/riscv/riscv-tests.git
 [submodule "riscv-pk"]
 	path = riscv-pk
-	url = git@github.com:pulp-platform/riscv-pk.git
+	url = https://github.com/pulp-platform/riscv-pk.git
 [submodule "riscv-isa-sim"]
 	path = riscv-isa-sim
-	url = git@github.com:riscv/riscv-isa-sim.git
+	url = https://github.com/riscv/riscv-isa-sim.git
 [submodule "riscv-gnu-toolchain"]
 	path = riscv-gnu-toolchain
-	url = git@github.com:riscv/riscv-gnu-toolchain.git
+	url = https://github.com/riscv/riscv-gnu-toolchain.git
 [submodule "riscv-fesvr"]
 	path = riscv-fesvr
-	url = git@github.com:riscv/riscv-fesvr.git
+	url = https://github.com/riscv/riscv-fesvr.git
