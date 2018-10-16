@@ -10,13 +10,9 @@ NR_CORES := 4
 # default configure flags
 fesvr-co         = --prefix=$(RISCV) --target=riscv64-unknown-elf
 isa-sim-co       = --prefix=$(RISCV) --with-fesvr=$(DEST)
-gnu-toolchain-co = --prefix=$(RISCV)
+gnu-toolchain-co = --prefix=$(RISCV) --enable-multilib
 pk-co            = --prefix=$(RISCV) --host=riscv64-unknown-elf
 tests-co         = --prefix=$(RISCV)/target
-
-# gnu toolchain arch and abi flags
-# only ommit rv64IMAC instructions and use softfloat
-gnu-toolchain-imac = --with-arch=rv64imac --with-abi=lp64
 
 #default make flags
 fesvr-mk                = -j$(NR_CORES)
