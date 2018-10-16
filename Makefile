@@ -27,12 +27,20 @@ install-dir:
 	mkdir -p $(RISCV)
 
 
+gnu-toolchain-newlib: gnu-toolchain
+	cd riscv-gnu-toolchain/build;\
+	make $(gnu-toolchain-newlib-mk);\
+	cd $(ROOT)
+
+gnu-toolchain-libc: gnu-toolchain
+	cd riscv-gnu-toolchain/build;\
+	make $(gnu-toolchain-libc-mk);\
+	cd $(ROOT)
+
 gnu-toolchain: install-dir
 	mkdir -p riscv-gnu-toolchain/build
 	cd riscv-gnu-toolchain/build;\
 	../configure $(gnu-toolchain-co);\
-	make $(gnu-toolchain-newlib-mk);\
-	make $(gnu-toolchain-libc-mk);\
 	cd $(ROOT)
 	# make install;
 	
@@ -69,7 +77,11 @@ pk: install-dir gnu-toolchain
 	make install;\
 	cd $(ROOT)
 
-all: gnu-toolchain fesvr isa-sim tests pk
+all: gnu-toolchain-newlib gnu-toolchain-libc fesvr isa-sim tests pk
+
+linux: gnu-toolchain-newlib gnu-toolchain-libc fesvr
+	RISCV=$(RISCV) make -C ariane-linux bbl
+
 
 clean:
 	rm -rf install riscv-fesvr/build riscv-isa-sim/build riscv-gnu-toolchain/build riscv-tests/build riscv-pk/build
