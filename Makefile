@@ -8,11 +8,12 @@ PATH     := $(DEST)/bin:$(PATH)
 NR_CORES := 4
 
 # default configure flags
-fesvr-co         = --prefix=$(RISCV) --target=riscv64-unknown-elf
-isa-sim-co       = --prefix=$(RISCV) --with-fesvr=$(DEST)
-gnu-toolchain-co = --prefix=$(RISCV) --enable-multilib
-pk-co            = --prefix=$(RISCV) --host=riscv64-unknown-elf
-tests-co         = --prefix=$(RISCV)/target
+fesvr-co              = --prefix=$(RISCV) --target=riscv64-unknown-elf
+isa-sim-co            = --prefix=$(RISCV) --with-fesvr=$(DEST)
+gnu-toolchain-co      = --prefix=$(RISCV) --enable-multilib
+gnu-toolchain-co-fast = --prefix=$(RISCV) --with-arch=rv64imac --with-abi=lp64 # no multilib for fast
+pk-co                 = --prefix=$(RISCV) --host=riscv64-unknown-elf
+tests-co              = --prefix=$(RISCV)/target
 
 #default make flags
 fesvr-mk                = -j$(NR_CORES)
@@ -32,6 +33,11 @@ gnu-toolchain-newlib: gnu-toolchain
 	make $(gnu-toolchain-newlib-mk);\
 	cd $(ROOT)
 
+gnu-toolchain-newlib-fast: gnu-toolchain-no-multilib
+	cd riscv-gnu-toolchain/build;\
+	make $(gnu-toolchain-newlib-mk);\
+	cd $(ROOT)
+
 gnu-toolchain-libc: gnu-toolchain
 	cd riscv-gnu-toolchain/build;\
 	make $(gnu-toolchain-libc-mk);\
@@ -42,7 +48,12 @@ gnu-toolchain: install-dir
 	cd riscv-gnu-toolchain/build;\
 	../configure $(gnu-toolchain-co);\
 	cd $(ROOT)
-	# make install;
+
+gnu-toolchain-no-multilib: install-dir
+	mkdir -p riscv-gnu-toolchain/build
+	cd riscv-gnu-toolchain/build;\
+	../configure $(gnu-toolchain-co-fast);\
+	cd $(ROOT)
 	
 fesvr: install-dir gnu-toolchain-newlib
 	mkdir -p riscv-fesvr/build
