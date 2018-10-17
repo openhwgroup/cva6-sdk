@@ -44,7 +44,7 @@ gnu-toolchain: install-dir
 	cd $(ROOT)
 	# make install;
 	
-fesvr: install-dir gnu-toolchain
+fesvr: install-dir gnu-toolchain-newlib
 	mkdir -p riscv-fesvr/build
 	cd riscv-fesvr/build;\
 	../configure $(fesvr-co);\
@@ -52,7 +52,7 @@ fesvr: install-dir gnu-toolchain
 	make install;\
 	cd $(ROOT)
 
-isa-sim: install-dir gnu-toolchain fesvr
+isa-sim: install-dir gnu-toolchain-newlib fesvr
 	mkdir -p riscv-isa-sim/build
 	cd riscv-isa-sim/build;\
 	../configure $(isa-sim-co);\
@@ -60,7 +60,7 @@ isa-sim: install-dir gnu-toolchain fesvr
 	make install;\
 	cd $(ROOT)
 
-tests: install-dir gnu-toolchain
+tests: install-dir gnu-toolchain-newlib
 	mkdir -p riscv-tests/build
 	cd riscv-tests/build;\
 	autoconf;\
@@ -69,7 +69,7 @@ tests: install-dir gnu-toolchain
 	make install;\
 	cd $(ROOT)
 
-pk: install-dir gnu-toolchain
+pk: install-dir gnu-toolchain-newlib
 	mkdir -p riscv-pk/build
 	cd riscv-pk/build;\
 	../configure $(pk-co);\
