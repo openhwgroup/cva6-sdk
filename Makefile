@@ -28,12 +28,7 @@ install-dir:
 	mkdir -p $(RISCV)
 
 
-gnu-toolchain-newlib: gnu-toolchain
-	cd riscv-gnu-toolchain/build;\
-	make $(gnu-toolchain-newlib-mk);\
-	cd $(ROOT)
-
-gnu-toolchain-newlib-fast: gnu-toolchain-no-multilib
+gnu-toolchain-newlib: gnu-toolchain-no-multilib
 	cd riscv-gnu-toolchain/build;\
 	make $(gnu-toolchain-newlib-mk);\
 	cd $(ROOT)
