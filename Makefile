@@ -11,7 +11,7 @@ NR_CORES := 4
 fesvr-co              = --prefix=$(RISCV) --target=riscv64-unknown-elf
 isa-sim-co            = --prefix=$(RISCV) --with-fesvr=$(DEST)
 gnu-toolchain-co      = --prefix=$(RISCV) --enable-multilib
-gnu-toolchain-co-fast = --prefix=$(RISCV) --with-arch=rv64imac --with-abi=lp64 # no multilib for fast
+gnu-toolchain-co-fast = --prefix=$(RISCV) --with-arch=rv64imac --with-abi=lp64 --disable-gdb# no multilib for fast
 pk-co                 = --prefix=$(RISCV) --host=riscv64-unknown-elf
 tests-co              = --prefix=$(RISCV)/target
 
