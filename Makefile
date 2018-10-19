@@ -28,15 +28,20 @@ install-dir:
 	mkdir -p $(RISCV)
 
 
-gnu-toolchain-newlib: gnu-toolchain-no-multilib
+$(RISCV)/bin/riscv64-unknown-elf-gcc: gnu-toolchain-no-multilib
 	cd riscv-gnu-toolchain/build;\
 	make $(gnu-toolchain-newlib-mk);\
 	cd $(ROOT)
 
-gnu-toolchain-libc: gnu-toolchain
+gnu-toolchain-newlib: $(RISCV)/bin/riscv64-unknown-elf-gcc
+
+$(RISCV)/bin/riscv64-unknown-linux-gnu-gcc: gnu-toolchain
 	cd riscv-gnu-toolchain/build;\
 	make $(gnu-toolchain-libc-mk);\
 	cd $(ROOT)
+
+gnu-toolchain-libc: $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc
+	
 
 gnu-toolchain: install-dir
 	mkdir -p riscv-gnu-toolchain/build
@@ -50,7 +55,7 @@ gnu-toolchain-no-multilib: install-dir
 	../configure $(gnu-toolchain-co-fast);\
 	cd $(ROOT)
 	
-fesvr: install-dir gnu-toolchain-newlib
+fesvr: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
 	mkdir -p riscv-fesvr/build
 	cd riscv-fesvr/build;\
 	../configure $(fesvr-co);\
@@ -58,7 +63,7 @@ fesvr: install-dir gnu-toolchain-newlib
 	make install;\
 	cd $(ROOT)
 
-isa-sim: install-dir gnu-toolchain-newlib fesvr
+isa-sim: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc fesvr
 	mkdir -p riscv-isa-sim/build
 	cd riscv-isa-sim/build;\
 	../configure $(isa-sim-co);\
@@ -66,7 +71,7 @@ isa-sim: install-dir gnu-toolchain-newlib fesvr
 	make install;\
 	cd $(ROOT)
 
-tests: install-dir gnu-toolchain-newlib
+tests: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
 	mkdir -p riscv-tests/build
 	cd riscv-tests/build;\
 	autoconf;\
@@ -75,7 +80,7 @@ tests: install-dir gnu-toolchain-newlib
 	make install;\
 	cd $(ROOT)
 
-pk: install-dir gnu-toolchain-newlib
+pk: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
 	mkdir -p riscv-pk/build
 	cd riscv-pk/build;\
 	../configure $(pk-co);\
@@ -85,7 +90,7 @@ pk: install-dir gnu-toolchain-newlib
 
 all: gnu-toolchain-newlib gnu-toolchain-libc fesvr isa-sim tests pk
 
-linux: gnu-toolchain-newlib gnu-toolchain-libc fesvr
+linux: gnu-toolchain-newlib $(RISCV)/bin/riscv64-unknown-elf-gcc fesvr
 	RISCV=$(RISCV) make -C ariane-linux bbl
 
 
