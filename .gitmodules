@@ -18,3 +18,6 @@
 	path = riscv-fesvr
 	url = https://github.com/riscv/riscv-fesvr.git
 	branch = master
+[submodule "buildroot"]
+	path = buildroot
+	url = git://git.buildroot.net/buildroot
