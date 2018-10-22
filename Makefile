@@ -109,9 +109,12 @@ bbl: vmlinux
 	make -C build
 	cp build/bbl bbl
 
-clean:
-	rm -rf install riscv-fesvr/build riscv-isa-sim/build riscv-gnu-toolchain/build riscv-tests/build riscv-pk/build
+clean: 
+	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl
+	make -C buildroot distclean
 
+clean-all: clean
+	rm -rf riscv-fesvr/build riscv-isa-sim/build riscv-gnu-toolchain/build riscv-tests/build riscv-pk/build
 
 help:
 	@echo "usage: $(MAKE) [RISCV='<install/here>'] [tool/img] ..."
@@ -125,6 +128,12 @@ help:
 	@echo "        make vmlinux"
 	@echo "    build bbl (with vmlinux) with"
 	@echo "        make bbl"
+	@echo ""
+	@echo "There are two clean targets:"
+	@echo "    Clean only buildroot"
+	@echo "        make clean"
+	@echo "    Clean everything (including toolchain etc)"
+	@echo "        make clean-all"
 	@echo ""
 	@echo "defaults:"
 	@echo "    RISCV='$(DEST)'"
