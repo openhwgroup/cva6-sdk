@@ -113,6 +113,9 @@ clean:
 	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl
 	make -C buildroot distclean
 
+bbl.bin: bbl
+	riscv64-unknown-elf-objcopy -S -O binary --change-addresses -0x80000000 $< $@
+
 clean-all: clean
 	rm -rf riscv-fesvr/build riscv-isa-sim/build riscv-gnu-toolchain/build riscv-tests/build riscv-pk/build
 
