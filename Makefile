@@ -46,7 +46,7 @@ $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc: gnu-toolchain-no-multilib
 	cd $(ROOT)
 
 gnu-toolchain-libc: $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc
-	
+
 
 gnu-toolchain: install-dir
 	mkdir -p riscv-gnu-toolchain/build
@@ -59,7 +59,7 @@ gnu-toolchain-no-multilib: install-dir
 	cd riscv-gnu-toolchain/build;\
 	../configure $(gnu-toolchain-co-fast);\
 	cd $(ROOT)
-	
+
 fesvr: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
 	mkdir -p riscv-fesvr/build
 	cd riscv-fesvr/build;\
@@ -105,11 +105,12 @@ vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)
 	cp build/vmlinux vmlinux
 
 bbl: vmlinux
-	cd build && ../riscv-pk/configure --host=riscv64-unknown-elf --with-payload=vmlinux  
+	cd build && ../riscv-pk/configure --host=riscv64-unknown-elf --with-payload=vmlinux
 	make -C build
 	cp build/bbl bbl
+	riscv64-unknown-elf-objcopy -S -O binary --change-addresses -0x80000000 $< $@
 
-clean: 
+clean:
 	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl
 	make -C buildroot distclean
 
