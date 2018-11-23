@@ -1,0 +1,34 @@
+From c07d9ee579c8a2240ba3d403c6827afb1f5608ea Mon Sep 17 00:00:00 2001
+From: Florian Zaruba <zarubaf@iis.ee.ethz.ch>
+Date: Tue, 20 Nov 2018 16:17:44 +0100
+Subject: [PATCH] Add RISC-V architecture to Xilinx ethernet Kconfig
+
+---
+ drivers/net/ethernet/xilinx/Kconfig | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/Kconfig b/drivers/net/ethernet/xilinx/Kconfig
+index da4ec575ccf9..0699b54ee759 100644
+--- a/drivers/net/ethernet/xilinx/Kconfig
++++ b/drivers/net/ethernet/xilinx/Kconfig
+@@ -5,7 +5,7 @@
+ config NET_VENDOR_XILINX
+ 	bool "Xilinx devices"
+ 	default y
+-	depends on PPC || PPC32 || MICROBLAZE || ARCH_ZYNQ || MIPS
++	depends on PPC || PPC32 || MICROBLAZE || ARCH_ZYNQ || MIPS || RISCV
+ 	---help---
+ 	  If you have a network (Ethernet) card belonging to this class, say Y.
+ 
+@@ -18,7 +18,7 @@ if NET_VENDOR_XILINX
+ 
+ config XILINX_EMACLITE
+ 	tristate "Xilinx 10/100 Ethernet Lite support"
+-	depends on PPC32 || MICROBLAZE || ARCH_ZYNQ || MIPS
++	depends on PPC32 || MICROBLAZE || ARCH_ZYNQ || MIPS || RISCV
+ 	select PHYLIB
+ 	---help---
+ 	  This driver supports the 10/100 Ethernet Lite from Xilinx.
+-- 
+2.14.3
+
