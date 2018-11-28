@@ -105,10 +105,9 @@ vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)
 	cp build/vmlinux vmlinux
 
 bbl: vmlinux
-	cd build && ../riscv-pk/configure --host=riscv64-unknown-elf --with-payload=vmlinux
+	cd build && ../riscv-pk/configure --host=riscv64-unknown-elf --with-payload=vmlinux --enable-logo --with-logo=../configs/logo.txt
 	make -C build
 	cp build/bbl bbl
-	riscv64-unknown-elf-objcopy -S -O binary --change-addresses -0x80000000 $< $@
 
 clean:
 	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl
