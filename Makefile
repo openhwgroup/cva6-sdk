@@ -23,6 +23,11 @@ gnu-toolchain-libc-mk   = linux -j$(NR_CORES)
 pk-mk 					= -j$(NR_CORES)
 tests-mk         		= -j$(NR_CORES)
 
+#linux image
+buildroot_defconfig = configs/buildroot_defconfig
+linux_defconfig = configs/linux_defconfig
+busybox_defconfig = configs/busybox.config
+
 
 install-dir:
 	mkdir -p $(RISCV)
@@ -35,13 +40,13 @@ $(RISCV)/bin/riscv64-unknown-elf-gcc: gnu-toolchain-no-multilib
 
 gnu-toolchain-newlib: $(RISCV)/bin/riscv64-unknown-elf-gcc
 
-$(RISCV)/bin/riscv64-unknown-linux-gnu-gcc: gnu-toolchain
+$(RISCV)/bin/riscv64-unknown-linux-gnu-gcc: gnu-toolchain-no-multilib
 	cd riscv-gnu-toolchain/build;\
 	make $(gnu-toolchain-libc-mk);\
 	cd $(ROOT)
 
 gnu-toolchain-libc: $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc
-	
+
 
 gnu-toolchain: install-dir
 	mkdir -p riscv-gnu-toolchain/build
@@ -54,7 +59,7 @@ gnu-toolchain-no-multilib: install-dir
 	cd riscv-gnu-toolchain/build;\
 	../configure $(gnu-toolchain-co-fast);\
 	cd $(ROOT)
-	
+
 fesvr: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
 	mkdir -p riscv-fesvr/build
 	cd riscv-fesvr/build;\
@@ -90,22 +95,51 @@ pk: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
 
 all: gnu-toolchain-newlib gnu-toolchain-libc fesvr isa-sim tests pk
 
-linux: gnu-toolchain-newlib $(RISCV)/bin/riscv64-unknown-elf-gcc fesvr
-	RISCV=$(RISCV) make -C ariane-linux bbl
 
+vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)/bin/riscv64-unknown-elf-gcc $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc
+	mkdir -p build
+	make -C buildroot clean
+	make -C buildroot defconfig BR2_DEFCONFIG=../configs/buildroot_defconfig
+	make -C buildroot
+	cp buildroot/output/images/vmlinux build/vmlinux
+	cp build/vmlinux vmlinux
 
-clean:
-	rm -rf install riscv-fesvr/build riscv-isa-sim/build riscv-gnu-toolchain/build riscv-tests/build riscv-pk/build
+bbl: vmlinux
+	cd build && ../riscv-pk/configure --host=riscv64-unknown-elf --with-payload=vmlinux --enable-logo --with-logo=../configs/logo.txt
+	make -C build
+	cp build/bbl bbl
 
+bbl_binary: bbl
+	riscv64-unknown-elf-objcopy -O binary bbl bbl_binary
+
+clean: 
+	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl
+	make -C buildroot distclean
+
+bbl.bin: bbl
+	riscv64-unknown-elf-objcopy -S -O binary --change-addresses -0x80000000 $< $@
+
+clean-all: clean
+	rm -rf riscv-fesvr/build riscv-isa-sim/build riscv-gnu-toolchain/build riscv-tests/build riscv-pk/build
 
 help:
-	@echo "usage: $(MAKE) [RISCV='<install/here>'] [<tool>] [<tool>='--<flag> ...'] ..."
+	@echo "usage: $(MAKE) [RISCV='<install/here>'] [tool/img] ..."
 	@echo ""
 	@echo "install [tool] to \$$RISCV with compiler <flag>'s"
+	@echo "    where tool can be any one of:"
+	@echo "        fesvr isa-sim gnu-toolchain tests pk"
 	@echo ""
-	@echo "where tool can be any one of:"
+	@echo "build linux images for ariane"
+	@echo "    build vmlinux with"
+	@echo "        make vmlinux"
+	@echo "    build bbl (with vmlinux) with"
+	@echo "        make bbl"
 	@echo ""
-	@echo "    fesvr isa-sim gnu-toolchain tests pk"
+	@echo "There are two clean targets:"
+	@echo "    Clean only buildroot"
+	@echo "        make clean"
+	@echo "    Clean everything (including toolchain etc)"
+	@echo "        make clean-all"
 	@echo ""
 	@echo "defaults:"
 	@echo "    RISCV='$(DEST)'"
