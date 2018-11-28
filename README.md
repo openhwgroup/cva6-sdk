@@ -35,8 +35,35 @@ Add `$RISCV/bin` to your path in order to later make use of the installed tools 
 
 Example for `.bashrc` or `.zshrc`:
 ```bash
-export RISCV=/opt/riscv
-export PATH=$PATH:$RISCV/bin
+$ export RISCV=/opt/riscv
+$ export PATH=$PATH:$RISCV/bin
+```
+
+## Linux
+You can also build a compatible linux image with bbl that boots linux on the ariane fpga mapping:
+```bash
+$ make vmlinux # make only the vmlinux image
+# outputs a vmlinux file in the top directory
+$ make bbl.bin # generate the entire bootable image
+# outputs bbl and bbl.bin
+```
+
+### Booting from an SD card
+The bootloader of ariane requires a GPT partition table so you first have to create one with gdisk.
+
+```bash
+$ sudo fdisk -l # search for the corresponding disk label (e.g. /dev/sdb)
+$ sudo sgdisk --clear --new=1:2048:67583 --new=2 --typecode=1:3000 --typecode=2:8300 /dev/sdb # create a new gpt partition table and two partitions: 1st partition: 32mb (ONIE boot), second partition: rest (Linux root)
+```
+
+Now you have to compile the linux kernel:
+```bash
+$ make bbl.bin # generate the entire bootable image
+```
+
+Then the bbl+linux kernel image can get copied to the sd card with `dd`. __Careful:__  use the same disk label that you found before with `fdisk -l` but with a 1 in the end, e.g. `/dev/sdb` -> `/dev/sdb1`.
+```bash
+$ sudo dd if=bbl.bin of=/dev/sdb1 status=progress oflag=sync bs=1M
 ```
 
 ## OpenOCD - Optional
