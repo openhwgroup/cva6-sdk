@@ -109,7 +109,10 @@ bbl: vmlinux
 	make -C build
 	cp build/bbl bbl
 
-clean:
+bbl_binary: bbl
+	riscv64-unknown-elf-objcopy -O binary bbl bbl_binary
+
+clean: 
 	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl
 	make -C buildroot distclean
 
