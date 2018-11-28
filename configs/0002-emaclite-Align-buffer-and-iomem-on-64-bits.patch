@@ -1,0 +1,43 @@
+From 50dbaec9e56e5063036724e673529fc53f85a25e Mon Sep 17 00:00:00 2001
+From: Florian Zaruba <zarubaf@iis.ee.ethz.ch>
+Date: Sun, 25 Nov 2018 00:19:03 +0100
+Subject: [PATCH] [emaclite] Align buffer and iomem on 64 bits
+
+---
+ drivers/net/ethernet/xilinx/xilinx_emaclite.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/ethernet/xilinx/xilinx_emaclite.c b/drivers/net/ethernet/xilinx/xilinx_emaclite.c
+index 639e3e9..5f9441c 100644
+--- a/drivers/net/ethernet/xilinx/xilinx_emaclite.c
++++ b/drivers/net/ethernet/xilinx/xilinx_emaclite.c
+@@ -99,7 +99,7 @@
+ #define ALIGNMENT		4
+ 
+ /* BUFFER_ALIGN(adr) calculates the number of bytes to the next alignment. */
+-#define BUFFER_ALIGN(adr) ((ALIGNMENT - ((u32)adr)) % ALIGNMENT)
++#define BUFFER_ALIGN(adr) ((ALIGNMENT - ((u64)adr)) % ALIGNMENT)
+ 
+ #ifdef __BIG_ENDIAN
+ #define xemaclite_readl		ioread32be
+@@ -340,7 +340,7 @@ static int xemaclite_send_data(struct net_local *drvdata, u8 *data,
+ 		 * if it is configured in HW
+ 		 */
+ 
+-		addr = (void __iomem __force *)((u32 __force)addr ^
++		addr = (void __iomem __force *)((u64 __force)addr ^
+ 						 XEL_BUFFER_OFFSET);
+ 		reg_data = xemaclite_readl(addr + XEL_TSR_OFFSET);
+ 
+@@ -401,7 +401,7 @@ static u16 xemaclite_recv_data(struct net_local *drvdata, u8 *data, int maxlen)
+ 		 * will correct on subsequent calls
+ 		 */
+ 		if (drvdata->rx_ping_pong != 0)
+-			addr = (void __iomem __force *)((u32 __force)addr ^
++			addr = (void __iomem __force *)((u64 __force)addr ^
+ 							 XEL_BUFFER_OFFSET);
+ 		else
+ 			return 0;	/* No data was available */
+-- 
+2.4.8
+
