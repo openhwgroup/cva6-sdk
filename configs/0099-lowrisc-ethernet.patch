@@ -11,7 +11,7 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/Kconfig linux-4.20-rc2/
  config JME
 diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/decod.c linux-4.20-rc2/drivers/net/ethernet/lowrisc/decod.c
 --- linux-4.20-rc2/drivers/net/ethernet/lowrisc/decod.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-4.20-rc2/drivers/net/ethernet/lowrisc/decod.c	2019-01-31 08:34:50.329957323 +0000
++++ linux-4.20-rc2/drivers/net/ethernet/lowrisc/decod.c	2019-02-01 10:51:23.414968000 +0000
 @@ -0,0 +1,85 @@
 +/*
 +
@@ -130,8 +130,8 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/Kconfig linux-4
 +endif # NET_VENDOR_LOWRISC
 diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c
 --- linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c	2019-01-31 09:24:29.991759566 +0000
-@@ -0,0 +1,858 @@
++++ linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c	2019-02-01 16:48:41.411764126 +0000
+@@ -0,0 +1,863 @@
 +/*
 + * Lowrisc Ether100MHz Linux driver for the Lowrisc Ethernet 100MHz device.
 + *
@@ -216,8 +216,7 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +  
 +  /* Spinlock */
 +  spinlock_t lock;
-+  uint32_t last_mdio_gpio;
-+  int irq, num_tests;
++  int irq, num_tests, phy_addr;
 +
 +  struct napi_struct napi;
 +};
@@ -468,18 +467,27 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +	struct net_local *priv = netdev_priv(ndev);
 +	struct phy_device *phydev = NULL;
 +	const char *phyname;
-+	
++        
 +	BUG_ON(priv->phy_dev);
 +
-+	/* Device only supports internal PHY at address 1 */
-+	phydev = mdiobus_get_phy(priv->mii_bus, 1);
++	/* find the first (lowest address) PHY
++	 * on the current MAC's MII bus
++	 */
++	for (priv->phy_addr = 0; priv->phy_addr < PHY_MAX_ADDR; priv->phy_addr++)
++          {
++            phydev = mdiobus_get_phy(priv->mii_bus, priv->phy_addr);
++            if (phydev) {
++              /* break out with first one found */
++              break;
++            }
++          }
 +	if (!phydev) {
-+		netdev_err(ndev, "no PHY found at address 1\n");
++          netdev_err(ndev, "no PHY found in range address 0..%d\n", PHY_MAX_ADDR-1);
 +		return -ENODEV;
 +	}
 +
 +	phyname = phydev_name(phydev);
-+	printk("Probing %s\n", phyname);
++	printk("Probing %s (address %d)\n", phyname, priv->phy_addr);
 +	
 +	phydev = phy_connect(ndev, phyname,
 +			     lowrisc_phy_adjust_link, PHY_INTERFACE_MODE_MII);
@@ -505,12 +513,12 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +static void mdio_dir(struct mdiobb_ctrl *ctrl, int dir)
 +{
 +  struct net_local *priv = (struct net_local *)ctrl; /* struct mdiobb_ctrl must be first in net_local for bitbang driver to work */
++  volatile uint64_t *eth_base = (volatile uint64_t *)(priv->ioaddr);
 +  if (dir)
-+    priv->last_mdio_gpio &= ~MDIOCTRL_MDIOOEN_MASK; // output driving
++    eth_base[MDIOCTRL_OFFSET >> 3] |= MDIOCTRL_MDIOOEN_MASK; // output driving
 +  else
-+    priv->last_mdio_gpio |= MDIOCTRL_MDIOOEN_MASK; // input receiving
-+    
-+  eth_write(priv, MDIOCTRL_OFFSET, priv->last_mdio_gpio);
++    eth_base[MDIOCTRL_OFFSET >> 3] &= ~MDIOCTRL_MDIOOEN_MASK; // input receiving
++  mmiowb();
 +  // temporary polling for debug
 +  lowrisc_ether_isr(priv->irq, priv);
 +}
@@ -518,30 +526,30 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +static int mdio_get(struct mdiobb_ctrl *ctrl)
 +{
 +  struct net_local *priv = (struct net_local *)ctrl; /* struct mdiobb_ctrl must be first in net_local for bitbang driver to work */
-+  uint32_t rslt = eth_read(priv, MDIOCTRL_OFFSET) & MDIOCTRL_MDIOIN_MASK ? 1:0;
-+  return rslt;
++  volatile uint64_t *eth_base = (volatile uint64_t *)(priv->ioaddr);
++  return eth_base[MDIOCTRL_OFFSET >> 3] & MDIOCTRL_MDIOIN_MASK ? 1:0;
 +}
 +
 +static void mdio_set(struct mdiobb_ctrl *ctrl, int what)
 +{
 +  struct net_local *priv = (struct net_local *)ctrl; /* struct mdiobb_ctrl must be first in net_local for bitbang driver to work */
++  volatile uint64_t *eth_base = (volatile uint64_t *)(priv->ioaddr);
 +  if (what)
-+    priv->last_mdio_gpio |= MDIOCTRL_MDIOOUT_MASK;
++    eth_base[MDIOCTRL_OFFSET >> 3] |= MDIOCTRL_MDIOOUT_MASK;
 +  else
-+    priv->last_mdio_gpio &= ~MDIOCTRL_MDIOOUT_MASK;
-+    
-+  eth_write(priv, MDIOCTRL_OFFSET, priv->last_mdio_gpio);
++    eth_base[MDIOCTRL_OFFSET >> 3] &= ~MDIOCTRL_MDIOOUT_MASK;
++  mmiowb();
 +}
 +
 +static void mdc_set(struct mdiobb_ctrl *ctrl, int what)
 +{
 +  struct net_local *priv = (struct net_local *)ctrl; /* struct mdiobb_ctrl must be first in net_local for bitbang driver to work */
++  volatile uint64_t *eth_base = (volatile uint64_t *)(priv->ioaddr);
 +  if (what)
-+    priv->last_mdio_gpio |= MDIOCTRL_MDIOCLK_MASK;
++    eth_base[MDIOCTRL_OFFSET >> 3] |= MDIOCTRL_MDIOCLK_MASK;
 +  else
-+    priv->last_mdio_gpio &= ~MDIOCTRL_MDIOCLK_MASK;
-+    
-+  eth_write(priv, MDIOCTRL_OFFSET, priv->last_mdio_gpio);
++    eth_base[MDIOCTRL_OFFSET >> 3] &= ~MDIOCTRL_MDIOCLK_MASK;
++  mmiowb();
 +}
 +
 +#ifdef MDIO_RESET
@@ -636,10 +644,8 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +  /* Check if there is Rx Data available */
 +  while ((rsr & RSR_RECV_DONE_MASK) && (rx_count < budget))
 +    {
-+      int rplr = eth_read(priv, RPLR_OFFSET+((buf&7)<<3));
-+      int errs = eth_read(priv, RBAD_OFFSET);
-+      int len = (rplr & RPLR_LENGTH_MASK) - 4; /* discard FCS bytes */
-+      if ((len >= 14) && ((0x101<<(buf&7)) & ~errs) && (len <= ETH_FRAME_LEN + ETH_FCS_LEN))
++      int len = eth_read(priv, RPLR_OFFSET+((buf&7)<<3)) - 4; /* discard FCS bytes ?? */
++      if ((len >= 60) && (len <= ETH_FRAME_LEN + ETH_FCS_LEN))
 +	{
 +	  int rnd = ((len-1)|7)+1; /* round to a multiple of 8 */
 +	  struct sk_buff *skb = __napi_alloc_skb(napi, rnd, GFP_ATOMIC|__GFP_NOWARN); // Don't warn, just drop surplus packets
@@ -740,7 +746,9 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +static const struct ethtool_ops lowrisc_ethtool_ops = {
 +	.get_regs_len		= lowrisc_get_regs_len,
 +	.get_regs		= lowrisc_get_regs,
-+        .self_test              = lowrisc_self_test
++        .self_test              = lowrisc_self_test,
++        .get_link_ksettings     = phy_ethtool_get_link_ksettings,
++        .set_link_ksettings     = phy_ethtool_set_link_ksettings        
 +};
 +
 +/**
@@ -762,10 +770,7 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +  lowrisc_update_address(priv, ndev->dev_addr);
 +  
 +  if (priv->phy_dev) {
-+    /* Ether100MHz doesn't support giga-bit speeds */
-+    priv->phy_dev->supported &= (*PHY_BASIC_FEATURES);
-+    priv->phy_dev->advertising = priv->phy_dev->supported;
-+    
++    priv->phy_dev->advertising = priv->phy_dev->supported;    
 +    phy_start(priv->phy_dev);
 +  }
 +  
@@ -992,8 +997,8 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +MODULE_LICENSE("GPL");
 diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.h linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.h
 --- linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.h	2019-01-30 15:13:23.513535780 +0000
-@@ -0,0 +1,61 @@
++++ linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.h	2019-02-01 10:51:23.414968000 +0000
+@@ -0,0 +1,56 @@
 +// See LICENSE for license details.
 +
 +#ifndef ETH_HEADER_H
@@ -1041,11 +1046,6 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +#define RSR_RECV_LAST_MASK    0x00000F00      /* last available rx buffer (static) */
 +#define RSR_RECV_DONE_MASK    0x00001000      /* Rx complete */
 +#define RSR_RECV_IRQ_MASK     0x00002000      /* Rx irq bit */
-+
-+/* Receive Packet Length Register (RPLR) */
-+#define RPLR_LENGTH_MASK      0x00000FFF      /* Rx packet length */
-+#define RPLR_ERROR_MASK       0x40000000      /* Rx error mask */
-+#define RPLR_FCS_ERROR_MASK   0x80000000      /* Rx FCS error mask */
 +
 +/* General Ethernet Definitions */
 +#define HEADER_OFFSET               12      /* Offset to length field */
