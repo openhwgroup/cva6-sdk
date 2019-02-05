@@ -105,7 +105,7 @@ vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)
 	cp build/vmlinux vmlinux
 
 bbl: vmlinux
-	cd build && ../riscv-pk/configure --host=riscv64-unknown-elf --with-payload=vmlinux --enable-logo --with-logo=../configs/logo.txt
+	cd build && ../riscv-pk/configure --host=riscv64-unknown-elf CC=riscv64-unknown-elf-gcc OBJDUMP=riscv64-unknown-elf-objdump --with-payload=vmlinux --enable-logo --with-logo=../configs/logo.txt
 	make -C build
 	cp build/bbl bbl
 
