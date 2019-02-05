@@ -12,7 +12,7 @@ fesvr-co              = --prefix=$(RISCV) --target=riscv64-unknown-elf
 isa-sim-co            = --prefix=$(RISCV) --with-fesvr=$(DEST)
 gnu-toolchain-co      = --prefix=$(RISCV) --enable-multilib
 gnu-toolchain-co-fast = --prefix=$(RISCV) --with-arch=rv64imac --with-abi=lp64 --disable-gdb# no multilib for fast
-pk-co                 = --prefix=$(RISCV) --host=riscv64-unknown-elf
+pk-co                 = --prefix=$(RISCV) --host=riscv64-unknown-elf CC=riscv64-unknown-elf-gcc OBJDUMP=riscv64-unknown-elf-objdump
 tests-co              = --prefix=$(RISCV)/target
 
 #default make flags
