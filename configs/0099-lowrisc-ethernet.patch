@@ -130,8 +130,8 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/Kconfig linux-4
 +endif # NET_VENDOR_LOWRISC
 diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c
 --- linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c	2019-02-01 16:48:41.411764126 +0000
-@@ -0,0 +1,863 @@
++++ linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c	2019-02-07 12:32:32.979360519 +0000
+@@ -0,0 +1,883 @@
 +/*
 + * Lowrisc Ether100MHz Linux driver for the Lowrisc Ethernet 100MHz device.
 + *
@@ -182,6 +182,7 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +#include <linux/platform_device.h>
 +#include <linux/mdio-bitbang.h>
 +#include <linux/mdio-gpio.h>
++#include <linux/workqueue.h>
 +#include "lowrisc_100MHz.h"
 +
 +#define DRIVER_AUTHOR	"WOOJUNG HUH <woojung.huh@microchip.com>"
@@ -219,6 +220,11 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +  int irq, num_tests, phy_addr;
 +
 +  struct napi_struct napi;
++  struct my_work
++  {
++    struct delayed_work napi_work;// Embedded work_struct
++    struct net_local *priv; // Your arguments
++  } my_work;
 +};
 +
 +static void inline eth_write(struct net_local *priv, size_t addr, int data)
@@ -295,6 +301,7 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +    }
 +}
 +
++#if 0
 +static void inline eth_enable_irq(struct net_local *priv)
 +{
 +  volatile uint64_t *eth_base = (volatile uint64_t *)(priv->ioaddr);
@@ -308,6 +315,7 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +  eth_base[MACHI_OFFSET >> 3] &= ~MACHI_IRQ_EN;
 +  mmiowb();
 +}
++#endif
 +
 +/**
 + * lowrisc_update_address - Update the MAC address in the device
@@ -411,10 +419,11 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +
 +	netif_stop_queue(ndev);
 +        napi_disable(&priv->napi);
++#if 0
 +	eth_disable_irq(priv);
 +	free_irq(priv->irq, ndev);
 +        printk("Close device, free interrupt\n");
-+        
++#endif        
 +	if (priv->phy_dev)
 +		phy_disconnect(priv->phy_dev);
 +	priv->phy_dev = NULL;
@@ -509,7 +518,6 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +	return 0;
 +}
 +
-+irqreturn_t lowrisc_ether_isr(int irq, void *priv_id);
 +static void mdio_dir(struct mdiobb_ctrl *ctrl, int dir)
 +{
 +  struct net_local *priv = (struct net_local *)ctrl; /* struct mdiobb_ctrl must be first in net_local for bitbang driver to work */
@@ -519,8 +527,6 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +  else
 +    eth_base[MDIOCTRL_OFFSET >> 3] &= ~MDIOCTRL_MDIOOEN_MASK; // input receiving
 +  mmiowb();
-+  // temporary polling for debug
-+  lowrisc_ether_isr(priv->irq, priv);
 +}
 +
 +static int mdio_get(struct mdiobb_ctrl *ctrl)
@@ -634,6 +640,13 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 + * received and hands it over to the TCP/IP stack.
 + */
 +
++static void napi_work_function(struct work_struct *ws)
++{
++  struct my_work *p = container_of(ws, struct my_work, napi_work.work);
++  struct net_local *priv = p->priv;  
++  napi_schedule(&priv->napi);
++}
++
 +static int lowrisc_ether_poll(struct napi_struct *napi, int budget)
 +{
 +  int rsr, buf, rx_count = 0;
@@ -674,15 +687,20 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +      rsr = eth_read(priv, RSR_OFFSET);
 +    }
 +
-+  if (rx_count < budget)
++  if (rsr & RSR_RECV_DONE_MASK)
++    return 1;
++  else
 +    {
-+      napi_complete_done(napi, rx_count);
-+      eth_enable_irq(priv);
++      unsigned long delay = 5;
++      INIT_DELAYED_WORK(&priv->my_work.napi_work, napi_work_function);
++      priv->my_work.priv = priv;
++      napi_complete_done(&priv->napi, rx_count);
++      schedule_delayed_work(&priv->my_work.napi_work, delay);
++      return 0;
 +    }
-+    
-+  return rx_count;
 +}
 +
++#if 0
 +irqreturn_t lowrisc_ether_isr(int irq, void *priv_id)
 +{
 +  int rsr;
@@ -702,7 +720,7 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +  else eth_enable_irq(priv);
 +  return rc;
 +}
-+
++#endif
 +
 +static int lowrisc_get_regs_len(struct net_device __always_unused *netdev)
 +{
@@ -762,7 +780,7 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +
 +static int lowrisc_open(struct net_device *ndev)
 +{
-+  int retval;
++  int retval = 0;
 +  struct net_local *priv = netdev_priv(ndev);
 +  ndev->ethtool_ops = &lowrisc_ethtool_ops;
 +
@@ -774,6 +792,7 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +    phy_start(priv->phy_dev);
 +  }
 +  
++#if 0
 +  /* Grab the IRQ */
 +  printk("Open device, request interrupt %d\n", priv->irq);
 +  retval = request_irq(priv->irq, lowrisc_ether_isr, IRQF_SHARED, ndev->name, priv);
@@ -782,9 +801,9 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +    if (priv->phy_dev)
 +      phy_disconnect(priv->phy_dev);
 +    priv->phy_dev = NULL;
-+    
 +    return retval;
 +  }
++#endif    
 +  
 +  lowrisc_update_address(priv, ndev->dev_addr);
 +
@@ -792,9 +811,10 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +  napi_enable(&priv->napi);
 +  netif_start_queue(ndev);
 +
-+  /* first call to handler enables the irq */
-+  lowrisc_ether_isr(priv->irq, priv);
-+  return 0;
++  /* enable handler */
++  napi_schedule(&priv->napi);
++
++  return retval;
 +}
 +
 +/**
@@ -925,7 +945,7 @@ diff -urN -X obj.txt linux-4.20-rc2/drivers/net/ethernet/lowrisc/lowrisc_100MHz.
 +	ndev->netdev_ops = &lowrisc_netdev_ops;
 +	ndev->flags &= ~IFF_MULTICAST;
 +	ndev->watchdog_timeo = TX_TIMEOUT;
-+        netif_napi_add(ndev, &priv->napi, lowrisc_ether_poll, 8);
++        netif_napi_add(ndev, &priv->napi, lowrisc_ether_poll, 64);
 +
 +	printk("lowrisc-digilent-ethernet: Lowrisc ethernet platform (%llX-%llX) mapped to %lx\n",
 +               lowrisc_ethernet[0].start,
