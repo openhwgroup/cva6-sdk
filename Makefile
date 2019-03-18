@@ -96,7 +96,11 @@ pk: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
 all: gnu-toolchain-newlib gnu-toolchain-libc fesvr isa-sim tests pk
 
 
-vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)/bin/riscv64-unknown-elf-gcc $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc
+cachetest: 
+	cd ./cachetest/ && $(RISCV)/bin/riscv64-unknown-elf-gcc cachetest.c -o cachetest.elf
+	cp ./cachetest/cachetest.elf rootfs/
+
+vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)/bin/riscv64-unknown-elf-gcc $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc cachetest
 	mkdir -p build
 	make -C buildroot clean
 	make -C buildroot defconfig BR2_DEFCONFIG=../configs/buildroot_defconfig
@@ -113,14 +117,16 @@ bbl_binary: bbl
 	riscv64-unknown-elf-objcopy -O binary bbl bbl_binary
 
 clean: 
-	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl
+	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl cachetest/*.elf
 	make -C buildroot distclean
 
 bbl.bin: bbl
 	riscv64-unknown-elf-objcopy -S -O binary --change-addresses -0x80000000 $< $@
 
 clean-all: clean
-	rm -rf riscv-fesvr/build riscv-isa-sim/build riscv-gnu-toolchain/build riscv-tests/build riscv-pk/build
+	rm -rf riscv-fesvr/build riscv-isa-sim/build riscv-gnu-toolchain/build riscv-tests/build riscv-pk/build cachetest/*.elf
+
+.PHONY: cachetest
 
 help:
 	@echo "usage: $(MAKE) [RISCV='<install/here>'] [tool/img] ..."
