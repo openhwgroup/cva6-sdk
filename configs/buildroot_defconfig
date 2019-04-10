@@ -14,7 +14,7 @@ BR2_ROOTFS_OVERLAY="../rootfs"
 BR2_LINUX_KERNEL=y
 BR2_LINUX_KERNEL_CUSTOM_VERSION=y
 BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="4.20-rc2"
-BR2_LINUX_KERNEL_PATCH="../configs/0001-Add-RISC-V-architecture-to-Xilinx-ethernet-Kconfig.patch ../configs/0002-emaclite-Align-buffer-and-iomem-on-64-bits.patch"
+BR2_LINUX_KERNEL_PATCH="../configs/0001-Add-RISC-V-architecture-to-Xilinx-ethernet-Kconfig.patch ../configs/0002-emaclite-Align-buffer-and-iomem-on-64-bits.patch ../configs/0099-Piton-SD-Driver.patch"
 BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
 BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="../configs/linux_defconfig"
 BR2_PACKAGE_BUSYBOX_CONFIG="../configs/busybox.config"
@@ -31,3 +31,4 @@ BR2_PACKAGE_NANO=y
 BR2_TARGET_ROOTFS_CPIO_GZIP=y
 BR2_TARGET_ROOTFS_INITRAMFS=y
 # BR2_TARGET_ROOTFS_TAR is not set
+BR2_PACKAGE_E2FSPROGS
