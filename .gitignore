@@ -2,6 +2,7 @@ install
 bbl*
 vmlinux
 build
+*.elf
 
 riscv-gnu-toolchain/build
 riscv-fesvr/build
