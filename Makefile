@@ -5,40 +5,29 @@ RISCV    ?= $(PWD)/install
 DEST     := $(abspath $(RISCV))
 PATH     := $(DEST)/bin:$(PATH)
 
-NR_CORES := 4
+NR_CORES := $(shell nproc)
 
 # default configure flags
-fesvr-co              = --prefix=$(RISCV) --target=riscv64-unknown-elf
+fesvr-co              = --prefix=$(RISCV) --target=riscv64-unknown-linux-gnu
 isa-sim-co            = --prefix=$(RISCV) --with-fesvr=$(DEST)
-gnu-toolchain-co      = --prefix=$(RISCV) --enable-multilib
-gnu-toolchain-co-fast = --prefix=$(RISCV) --with-arch=rv64imac --with-abi=lp64 --disable-gdb# no multilib for fast
-pk-co                 = --prefix=$(RISCV) --host=riscv64-unknown-elf CC=riscv64-unknown-elf-gcc OBJDUMP=riscv64-unknown-elf-objdump
+gnu-toolchain-co-fast = --prefix=$(RISCV) --disable-gdb# no multilib for fast
+pk-co                 = --prefix=$(RISCV) --host=riscv64-unknown-linux-gnu-elf CC=riscv64-unknown-linux-gnu-gcc OBJDUMP=riscv64-unknown-linux-gnu-objdump
 tests-co              = --prefix=$(RISCV)/target
 
-#default make flags
+# default make flags
 fesvr-mk                = -j$(NR_CORES)
 isa-sim-mk              = -j$(NR_CORES)
-gnu-toolchain-newlib-mk = -j$(NR_CORES)
 gnu-toolchain-libc-mk   = linux -j$(NR_CORES)
 pk-mk 					= -j$(NR_CORES)
 tests-mk         		= -j$(NR_CORES)
 
-#linux image
+# linux image
 buildroot_defconfig = configs/buildroot_defconfig
 linux_defconfig = configs/linux_defconfig
 busybox_defconfig = configs/busybox.config
 
-
 install-dir:
 	mkdir -p $(RISCV)
-
-
-$(RISCV)/bin/riscv64-unknown-elf-gcc: gnu-toolchain-no-multilib
-	cd riscv-gnu-toolchain/build;\
-	make $(gnu-toolchain-newlib-mk);\
-	cd $(ROOT)
-
-gnu-toolchain-newlib: $(RISCV)/bin/riscv64-unknown-elf-gcc
 
 $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc: gnu-toolchain-no-multilib
 	cd riscv-gnu-toolchain/build;\
@@ -47,20 +36,13 @@ $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc: gnu-toolchain-no-multilib
 
 gnu-toolchain-libc: $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc
 
-
-gnu-toolchain: install-dir
-	mkdir -p riscv-gnu-toolchain/build
-	cd riscv-gnu-toolchain/build;\
-	../configure $(gnu-toolchain-co);\
-	cd $(ROOT)
-
 gnu-toolchain-no-multilib: install-dir
 	mkdir -p riscv-gnu-toolchain/build
 	cd riscv-gnu-toolchain/build;\
 	../configure $(gnu-toolchain-co-fast);\
 	cd $(ROOT)
 
-fesvr: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
+fesvr: install-dir $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc
 	mkdir -p riscv-fesvr/build
 	cd riscv-fesvr/build;\
 	../configure $(fesvr-co);\
@@ -68,7 +50,7 @@ fesvr: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
 	make install;\
 	cd $(ROOT)
 
-isa-sim: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc fesvr
+isa-sim: install-dir $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc fesvr
 	mkdir -p riscv-isa-sim/build
 	cd riscv-isa-sim/build;\
 	../configure $(isa-sim-co);\
@@ -76,7 +58,7 @@ isa-sim: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc fesvr
 	make install;\
 	cd $(ROOT)
 
-tests: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
+tests: install-dir $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc
 	mkdir -p riscv-tests/build
 	cd riscv-tests/build;\
 	autoconf;\
@@ -85,7 +67,7 @@ tests: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
 	make install;\
 	cd $(ROOT)
 
-pk: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
+pk: install-dir $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc
 	mkdir -p riscv-pk/build
 	cd riscv-pk/build;\
 	../configure $(pk-co);\
@@ -93,10 +75,9 @@ pk: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
 	make install;\
 	cd $(ROOT)
 
-all: gnu-toolchain-newlib gnu-toolchain-libc fesvr isa-sim tests pk
+all: gnu-toolchain-libc fesvr isa-sim tests pk
 
-
-cachetest: 
+cachetest:
 	cd ./cachetest/ && $(RISCV)/bin/riscv64-unknown-elf-gcc cachetest.c -o cachetest.elf
 	cp ./cachetest/cachetest.elf rootfs/
 
@@ -109,14 +90,14 @@ vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)
 	cp build/vmlinux vmlinux
 
 bbl: vmlinux
-	cd build && ../riscv-pk/configure --host=riscv64-unknown-elf CC=riscv64-unknown-elf-gcc OBJDUMP=riscv64-unknown-elf-objdump --with-payload=vmlinux --enable-logo --with-logo=../configs/logo.txt
+	cd build && ../riscv-pk/configure --host=riscv64-unknown-elf CC=riscv64-unknown-linux-gnu-gcc OBJDUMP=riscv64-unknown-linux-gnu-objdump --with-payload=vmlinux --enable-logo --with-logo=../configs/logo.txt
 	make -C build
 	cp build/bbl bbl
 
 bbl_binary: bbl
 	riscv64-unknown-elf-objcopy -O binary bbl bbl_binary
 
-clean: 
+clean:
 	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl cachetest/*.elf
 	make -C buildroot distclean
 
