@@ -83,14 +83,13 @@ cachetest:
 	cp ./cachetest/cachetest.elf rootfs/
 
 # cool command-line tetris
-vitetris:
+rootfs/tetris:
 	cd ./vitetris/ && make clean && ./configure CC=riscv64-unknown-linux-gnu-gcc && make
-	cp ./vitetris/tetris rootfs/
+	cp ./vitetris/tetris $@
 
-vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)/bin/riscv64-unknown-elf-gcc $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc cachetest vitetris
+vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)/bin/riscv64-unknown-elf-gcc $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc cachetest rootfs/tetris
 	mkdir -p build
-	make -C buildroot clean
-	make -C buildroot defconfig BR2_DEFCONFIG=../configs/buildroot_defconfig
+	make -C buildroot defconfig BR2_DEFCONFIG=../$(buildroot_defconfig)
 	make -C buildroot
 	cp buildroot/output/images/vmlinux build/vmlinux
 	cp build/vmlinux vmlinux
@@ -104,7 +103,7 @@ bbl_binary: bbl
 	riscv64-unknown-elf-objcopy -O binary bbl bbl_binary
 
 clean:
-	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl cachetest/*.elf vitetris/tetris
+	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl cachetest/*.elf rootfs/tetris
 	make -C buildroot distclean
 
 bbl.bin: bbl
