@@ -112,7 +112,7 @@ bbl.bin: bbl
 clean-all: clean
 	rm -rf riscv-fesvr/build riscv-isa-sim/build riscv-gnu-toolchain/build riscv-tests/build riscv-pk/build
 
-.PHONY: cachetest vitetris
+.PHONY: cachetest rootfs/tetris
 
 help:
 	@echo "usage: $(MAKE) [RISCV='<install/here>'] [tool/img] ..."
