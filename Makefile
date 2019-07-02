@@ -29,6 +29,17 @@ busybox_defconfig = configs/busybox.config
 install-dir:
 	mkdir -p $(RISCV)
 
+$(RISCV)/bin/riscv64-unknown-elf-gcc: gnu-toolchain-newlib
+	cd riscv-gnu-toolchain/build;\
+        make -j$(NR_CORES);\
+        cd $(ROOT)
+
+gnu-toolchain-newlib: install-dir
+	mkdir -p riscv-gnu-toolchain/build
+	cd riscv-gnu-toolchain/build;\
+        ../configure --prefix=$(RISCV);\
+        cd $(ROOT)
+
 $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc: gnu-toolchain-no-multilib
 	cd riscv-gnu-toolchain/build;\
 	make $(gnu-toolchain-libc-mk);\
