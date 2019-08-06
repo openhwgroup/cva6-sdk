@@ -69,7 +69,7 @@ isa-sim: install-dir $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc fesvr
 	make install;\
 	cd $(ROOT)
 
-tests: install-dir $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc
+tests: install-dir $(RISCV)/bin/riscv64-unknown-elf-gcc
 	mkdir -p riscv-tests/build
 	cd riscv-tests/build;\
 	autoconf;\
