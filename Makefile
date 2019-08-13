@@ -11,7 +11,7 @@ NR_CORES := $(shell nproc)
 fesvr-co              = --prefix=$(RISCV) --target=riscv64-unknown-linux-gnu
 isa-sim-co            = --prefix=$(RISCV) --with-fesvr=$(DEST)
 gnu-toolchain-co-fast = --prefix=$(RISCV) --disable-gdb# no multilib for fast
-pk-co                 = --prefix=$(RISCV) --host=riscv64-unknown-linux-gnu-elf CC=riscv64-unknown-linux-gnu-gcc OBJDUMP=riscv64-unknown-linux-gnu-objdump
+pk-co                 = --prefix=$(RISCV) --host=riscv64-unknown-linux-gnu CC=riscv64-unknown-linux-gnu-gcc OBJDUMP=riscv64-unknown-linux-gnu-objdump
 tests-co              = --prefix=$(RISCV)/target
 
 # default make flags
