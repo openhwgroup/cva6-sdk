@@ -4,7 +4,7 @@ This repository is used to create a bootable linux image for the [ariane core](h
 
 ## Requirements
 
-You require the following crosscompilation toolchains for RISC-V: riscv64-unknown-elf-gcc and riscv64-unknown-linux-gnu. These can be optained by using [crosstool-ng](https://crosstool-ng.github.io/):
+You require the following crosscompilation toolchains for RISC-V: riscv64-unknown-elf-gcc and riscv64-unknown-linux-gnu. These can be optained from the official [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain) or by using [crosstool-ng](https://crosstool-ng.github.io/):
 
 ```console
 $ ct-ng list-samples
