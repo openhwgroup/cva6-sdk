@@ -31,7 +31,7 @@ $ make all
 
 ## Environment Variables
 
-Add `$RISCV/bin` to your path in order to later make use of the installed tools and permanently export `$RISCV`. 
+Add `$RISCV/bin` to your path in order to later make use of the installed tools and permanently export `$RISCV`.
 
 Example for `.bashrc` or `.zshrc`:
 ```bash
@@ -66,8 +66,18 @@ Then the bbl+linux kernel image can get copied to the sd card with `dd`. __Caref
 $ sudo dd if=bbl.bin of=/dev/sdb1 status=progress oflag=sync bs=1M
 ```
 
+## OS X
+
+Similar steps as above but flashing is slgithly different. Get `sgdisk` using `homebrew`.
+
+```
+$ brew install gptfdisk
+$ sudo sgdisk --clear -g --new=1:2048:67583 --new=2 --typecode=1:3000 --typecode=2:8300 /dev/disk2
+$ sudo dd if=bbl.bin of=/dev/disk2s1  bs=1m
+```
+
 ## OpenOCD - Optional
-If you really need and want to debug on an FPGA/ASIC target the installation instructions are [here](https://github.com/riscv/riscv-openocd). 
+If you really need and want to debug on an FPGA/ASIC target the installation instructions are [here](https://github.com/riscv/riscv-openocd).
 
 ## Ethernet SSH
 This patch incorporates an overlay to overcome the painful delay in generating public/private key pairs on the target
@@ -76,3 +86,17 @@ Likewise it also incorporates a script (rootfs/etc/init.d/S40fixup) which replac
 value. This should be replaced by the unique value on the back of the Genesys2 board if more than one device is used on
 the same VLAN. Needless to say both of these values would need regenerating for anything other than development use.
 
+# Docker Container
+
+There is a pretty basic Docker container you can use to get a stable build environment to build the image.
+
+```
+$ cd container
+$ sudo docker build -t ghcr.io/pulp-platform/ariane-sdk -f Dockerfile .
+```
+
+And build the image:
+```
+$ cd ..
+$ sudo docker run -it -v `pwd`:/repo -w /repo -u $(id -u ${USER}):$(id -g ${USER}) ghcr.io/pulp-platform/ariane-sdk
+```
