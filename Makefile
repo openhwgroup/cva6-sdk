@@ -102,8 +102,8 @@ vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)
 	mkdir -p build
 	make -C buildroot defconfig BR2_DEFCONFIG=../$(buildroot_defconfig)
 	make -C buildroot
-	cp buildroot/output/images/vmlinux build/vmlinux
-	cp build/vmlinux vmlinux
+	cp buildroot/output/images/Image build/Image
+	cp build/Image vmlinux
 
 bbl: vmlinux
 	cd build && ../riscv-pk/configure --host=riscv64-unknown-elf CC=riscv64-unknown-linux-gnu-gcc OBJDUMP=riscv64-unknown-linux-gnu-objdump --with-payload=vmlinux --enable-logo --with-logo=../configs/logo.txt
