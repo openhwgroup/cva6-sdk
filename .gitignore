@@ -3,7 +3,7 @@ bbl*
 vmlinux
 build
 *.elf
-rootfs/tetris
+rootfs/usr/bin/tetris
 
 riscv-gnu-toolchain/build
 riscv-fesvr/build
