@@ -25,3 +25,6 @@
 	path = opensbi
 	url = https://github.com/riscv/opensbi.git
 
+[submodule "u-boot"]
+	path = u-boot
+	url = https://source.denx.de/u-boot/u-boot.git

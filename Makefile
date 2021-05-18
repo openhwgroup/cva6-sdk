@@ -7,6 +7,9 @@ PATH     := $(DEST)/bin:$(PATH)
 
 NR_CORES := $(shell nproc)
 
+PLATFORM := fpga/ariane
+FW_FDT_PATH ?=
+
 # default configure flags
 fesvr-co              = --prefix=$(RISCV) --target=riscv64-unknown-linux-gnu
 isa-sim-co            = --prefix=$(RISCV) --with-fesvr=$(DEST)
@@ -99,27 +102,22 @@ rootfs/usr/bin/tetris:
 	mkdir -p rootfs/usr/bin
 	cp ./vitetris/tetris $@
 
-vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)/bin/riscv64-unknown-elf-gcc $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc cachetest rootfs/usr/bin/tetris
+Image: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)/bin/riscv64-unknown-elf-gcc $(RISCV)/bin/riscv64-unknown-linux-gnu-gcc cachetest rootfs/usr/bin/tetris
 	mkdir -p build
 	make -C buildroot defconfig BR2_DEFCONFIG=../$(buildroot_defconfig)
 	make -C buildroot
-	cp buildroot/output/images/vmlinux build/vmlinux
-	cp build/vmlinux vmlinux
+	cp buildroot/output/images/Image build/Image
+	cp build/Image Image
 
-bbl: vmlinux
-	cd build && ../riscv-pk/configure --host=riscv64-unknown-elf CC=riscv64-unknown-linux-gnu-gcc OBJDUMP=riscv64-unknown-linux-gnu-objdump --with-payload=vmlinux --enable-logo --with-logo=../configs/logo.txt
-	make -C build
-	cp build/bbl bbl
-
-bbl_binary: bbl
-	riscv64-unknown-elf-objcopy -O binary bbl bbl_binary
+fw_payload.elf fw_payload.bin: Image
+	make -C opensbi PLATFORM=$(PLATFORM) FW_PAYLOAD_PATH=../Image CROSS_COMPILE=../install/bin/riscv64-unknown-linux-gnu- $(if $(FW_FDT_PATH),FW_FDT_PATH=$(FW_FDT_PATH),)
+	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_payload.elf fw_payload.elf
+	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_payload.bin fw_payload.bin
 
 clean:
-	rm -rf vmlinux bbl riscv-pk/build/vmlinux riscv-pk/build/bbl cachetest/*.elf rootfs/usr/bin/tetris
+	rm -rf Image riscv-pk/build/Image riscv-pk/build/bbl cachetest/*.elf rootfs/usr/bin/tetris
+	make -C opensbi clean
 	make -C buildroot distclean
-
-bbl.bin: bbl
-	riscv64-unknown-elf-objcopy -S -O binary --change-addresses -0x80000000 $< $@
 
 clean-all: clean
 	rm -rf riscv-fesvr/build riscv-isa-sim/build riscv-gnu-toolchain/build riscv-tests/build riscv-pk/build
@@ -134,10 +132,10 @@ help:
 	@echo "        fesvr isa-sim gnu-toolchain tests pk"
 	@echo ""
 	@echo "build linux images for ariane"
-	@echo "    build vmlinux with"
-	@echo "        make vmlinux"
-	@echo "    build bbl (with vmlinux) with"
-	@echo "        make bbl"
+	@echo "    build Image with"
+	@echo "        make Image"
+	@echo "    build OpenSBI Kernel (with Image) with"
+	@echo "        make fw_payload.elf"
 	@echo ""
 	@echo "There are two clean targets:"
 	@echo "    Clean only buildroot"

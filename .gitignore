@@ -1,8 +1,12 @@
+.vscode/
 install
 bbl*
 vmlinux
+Image
+fw_payload.*
 build
 *.elf
+*.a
 rootfs/usr/bin/tetris
 
 riscv-gnu-toolchain/build
