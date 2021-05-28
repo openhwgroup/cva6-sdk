@@ -27,4 +27,4 @@
 
 [submodule "u-boot"]
 	path = u-boot
-	url = https://source.denx.de/u-boot/u-boot.git
+	url = git@github.com:pulp-platform/u-boot.git
