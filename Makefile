@@ -7,7 +7,7 @@ PATH     := $(DEST)/bin:$(PATH)
 
 NR_CORES := $(shell nproc)
 
-PLATFORM := fpga/ariane
+PLATFORM := generic
 FW_FDT_PATH ?=
 
 # default configure flags
@@ -109,13 +109,26 @@ Image: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(RISCV)/b
 	cp buildroot/output/images/Image build/Image
 	cp build/Image Image
 
-fw_payload.elf fw_payload.bin: Image
-	make -C opensbi PLATFORM=$(PLATFORM) FW_PAYLOAD_PATH=../Image CROSS_COMPILE=../install/bin/riscv64-unknown-linux-gnu- $(if $(FW_FDT_PATH),FW_FDT_PATH=$(FW_FDT_PATH),)
+Image.gz: Image
+	gzip -9 --force $< > $@
+
+# U-Boot-compatible Linux image
+uImage.bin: Image.gz
+	u-boot/tools/mkimage -A riscv -O linux -T kernel -C gzip -a 84000000 -e 84000000 -n "linux" -d $< $@
+
+u-boot/u-boot.bin:
+	make -C u-boot pulp-platform_occamy_defconfig
+	make -C u-boot CROSS_COMPILE=../install/bin/riscv64-unknown-linux-gnu-
+
+# OpenSBI with U-Boot as payload
+fw_payload.elf fw_payload.bin: u-boot/u-boot.bin
+	make -C opensbi PLATFORM=$(PLATFORM) FW_PAYLOAD_PATH=../$< CROSS_COMPILE=../install/bin/riscv64-unknown-linux-gnu- $(if $(FW_FDT_PATH),FW_FDT_PATH=$(FW_FDT_PATH),)
 	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_payload.elf fw_payload.elf
 	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_payload.bin fw_payload.bin
 
 clean:
 	rm -rf Image riscv-pk/build/Image riscv-pk/build/bbl cachetest/*.elf rootfs/usr/bin/tetris
+	make -C u-boot clean
 	make -C opensbi clean
 	make -C buildroot distclean
 
