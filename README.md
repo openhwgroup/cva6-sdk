@@ -7,7 +7,6 @@ Included tools:
 * [riscv-tests](https://github.com/riscv/riscv-tests/), a battery of ISA-level tests
 * [riscv-pk](https://github.com/riscv/riscv-pk/), which contains `bbl`, a boot loader for Linux and similar OS kernels, and `pk`, a proxy kernel that services system calls for a target-machine application by forwarding them to the host machine
 * [riscv-fesvr](https://github.com/riscv/riscv-fesvr/), the host side of a simulation tether that services system calls on behalf of a target machine
-* [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain), the cross compilation toolchain for riscv targets
 
 ## Quickstart
 
@@ -20,18 +19,18 @@ Requirements Fedora:
 ```console
 $ sudo dnf install autoconf automake @development-tools curl dtc libmpc-devel mpfr-devel gmp-devel libusb-devel gawk gcc-c++ bison flex texinfo gperf libtool patchutils bc zlib-devel expat-devel
 ```
-
-Then install the tools with
+You can select the XLEN by setting it in the Makefile.
+Then compile the images with
 
 ```console
 $ git submodule update --init --recursive
-$ export RISCV=/path/to/install/riscv/toolchain # default: ./install
-$ make all
+$ export RISCV=/path/to/install/riscv/toolchain # default: ./install$(XLEN)
+$ make images
 ```
 
 ## Environment Variables
 
-Add `$RISCV/bin` to your path in order to later make use of the installed tools and permanently export `$RISCV`.
+If you want to cross compile other projects for this target you can add `$RISCV/bin` to your path in order to later make use of the installed tools and permanently export `$RISCV`.
 
 Example for `.bashrc` or `.zshrc`:
 ```bash
@@ -46,6 +45,18 @@ $ make vmlinux # make only the vmlinux image
 # outputs a vmlinux file in the top directory
 $ make bbl.bin # generate the entire bootable image
 # outputs bbl and bbl.bin
+$ make images # generates all images and save them in $(RISCV)
+# outputs $(RISCV)/vmlinux, $(RISCV)/bbl and $(RISCV)/bbl.bin
+```
+
+## Spike
+You can test your image on spike 
+```bash
+$ $(RISCV)/bin/spike bbl 2> /dev/null
+```
+Spike allows trace logging
+```bash
+$ $(RISCV)/bin/spike --log-commits bbl 2> trace.log.commits
 ```
 
 ### Booting from an SD card
