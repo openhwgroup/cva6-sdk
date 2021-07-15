@@ -113,21 +113,22 @@ Image.gz: Image
 	gzip -9 --force $< > $@
 
 # U-Boot-compatible Linux image
-uImage.bin: Image.gz
+uImage: Image.gz
 	u-boot/tools/mkimage -A riscv -O linux -T kernel -C gzip -a 84000000 -e 84000000 -n "linux" -d $< $@
 
-u-boot/u-boot.bin:
-	make -C u-boot pulp-platform_occamy_defconfig
-	make -C u-boot CROSS_COMPILE=../install/bin/riscv64-unknown-linux-gnu-
+# U-Boot image with OpenSBI as payload
+u-boot/u-boot.itb u-boot/u-boot.bin: fw_dynamic.bin
+	make -C u-boot pulp-platform_occamy_defconfig OPENSBI=../fw_dynamic.bin
+	make -C u-boot CROSS_COMPILE=$(RISCV)/bin/riscv64-unknown-linux-gnu- OPENSBI=../fw_dynamic.bin
 
-# OpenSBI with U-Boot as payload
-fw_payload.elf fw_payload.bin: u-boot/u-boot.bin
-	make -C opensbi PLATFORM=$(PLATFORM) FW_PAYLOAD_PATH=../$< CROSS_COMPILE=../install/bin/riscv64-unknown-linux-gnu- $(if $(FW_FDT_PATH),FW_FDT_PATH=$(FW_FDT_PATH),)
-	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_payload.elf fw_payload.elf
-	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_payload.bin fw_payload.bin
+# OpenSBI without payload
+fw_dynamic.elf fw_dynamic.bin:
+	make -C opensbi PLATFORM=$(PLATFORM) CROSS_COMPILE=$(RISCV)/bin/riscv64-unknown-linux-gnu- $(if $(FW_FDT_PATH),FW_FDT_PATH=$(FW_FDT_PATH),)
+	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_dynamic.elf fw_dynamic.elf
+	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_dynamic.bin fw_dynamic.bin
 
 clean:
-	rm -rf Image riscv-pk/build/Image riscv-pk/build/bbl cachetest/*.elf rootfs/usr/bin/tetris
+	rm -rf uImage Image.gz Image riscv-pk/build/Image riscv-pk/build/bbl cachetest/*.elf rootfs/usr/bin/tetris
 	make -C u-boot clean
 	make -C opensbi clean
 	make -C buildroot distclean
