@@ -86,17 +86,34 @@ Likewise it also incorporates a script (rootfs/etc/init.d/S40fixup) which replac
 value. This should be replaced by the unique value on the back of the Genesys2 board if more than one device is used on
 the same VLAN. Needless to say both of these values would need regenerating for anything other than development use.
 
-# Docker Container
+## Docker Container
 
-There is a pretty basic Docker container you can use to get a stable build environment to build the image.
+The CVA6-SDK comes with a basic Dockerfile you can use to get a isolated docker container to develop CVA6 software.
 
+#### Build the docker image
+First, you need to use the provided Dockerfile to build a docker image.
+Image creation is parametrized such that each developer can customize its SDK working environment.
+You can set:
+- The OS timezone inside the container (argument TZ, default is `Europe/Rome`)
+- CVA6-SDK Git repository url (argument GIT_REPO_URL, default is `"https://github.com/openhwgroup/cva6-sdk"`)
+- CVA6-SDK Git commit to checkout (argument GIT_REPO_COMMIT, default is `0f605ac`)
+- Name of the user inside the container (argument CONTAINER_USER, default is `user`)
+
+Consider that image creation will automatically download and build the RISC-V toolchain, which may be a slow process.
+On the other hand, such a choice is convenient: since any software development will require a working RISC-V toolchain it worths build it once for all on image creation.
+To build the SDK docker image from the repository top-level directory type:
 ```
-$ cd container
-$ sudo docker build -t ghcr.io/pulp-platform/ariane-sdk -f Dockerfile .
+$ docker build -t cva6-sdk container
+```
+As an example, to build the image creating a user with the same name of your host user type:
+```
+$ docker build -t cva6-sdk --build-arg CONTAINER_USER=$(whoami) container
 ```
 
-And build the image:
+#### Run a container instance
+To run a container instance type:
 ```
-$ cd ..
-$ sudo docker run -it -v `pwd`:/repo -w /repo -u $(id -u ${USER}):$(id -g ${USER}) ghcr.io/pulp-platform/ariane-sdk
+$ docker run -it -v $(pwd):/shared cva6-sdk
 ```
+Notice that such a command will bind the host local directory inside the container filesystem in `/shared`.
+It means that any output of your development process, such as your rootfs image or bbl.bin binary may be copied inside your host file system by just copying it to the container `/shared` directory.
