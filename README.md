@@ -1,6 +1,6 @@
-# Ariane SDK
+# CVA6 SDK
 
-This repository houses a set of RISCV tools for the [ariane core](https://github.com/pulp-platform/ariane). It contains some small modifications to the official [riscv-tools](https://github.com/riscv/riscv-tools). Most importantly it **does not contain openOCD**.
+This repository houses a set of RISCV tools for the [CVA6 core](https://github.com/openhwgroup/cva6). Most importantly it **does not contain openOCD**.
 
 Included tools:
 * [Spike](https://github.com/riscv/riscv-isa-sim/), the ISA simulator
@@ -20,39 +20,36 @@ Requirements Fedora:
 $ sudo dnf install autoconf automake @development-tools curl dtc libmpc-devel mpfr-devel gmp-devel libusb-devel gawk gcc-c++ bison flex texinfo gperf libtool patchutils bc zlib-devel expat-devel
 ```
 You can select the XLEN by setting it in the Makefile.
-Then compile the images with
+Then compile the Linux images with
 
 ```console
 $ git submodule update --init --recursive
-$ export RISCV=/path/to/install/riscv/toolchain # default: ./install$(XLEN)
 $ make images
 ```
 
 ## Environment Variables
 
-If you want to cross compile other projects for this target you can add `$RISCV/bin` to your path in order to later make use of the installed tools and permanently export `$RISCV`.
+If you want to cross compile other projects for this target you can add `buildroot/output/host/bin/` to your path in order to later make use of the installed tools after compiling them with :
 
-Example for `.bashrc` or `.zshrc`:
 ```bash
-$ export RISCV=/opt/riscv
-$ export PATH=$PATH:$RISCV/bin
+$ make all
 ```
 
 ## Linux
-You can also build a compatible linux image with bbl that boots linux on the ariane fpga mapping:
+You can also build a compatible linux image with bbl that boots linux on the CVA6 fpga mapping:
 ```bash
 $ make vmlinux # make only the vmlinux image
 # outputs a vmlinux file in the top directory
 $ make bbl.bin # generate the entire bootable image
 # outputs bbl and bbl.bin
-$ make images # generates all images and save them in $(RISCV)
-# outputs $(RISCV)/vmlinux, $(RISCV)/bbl and $(RISCV)/bbl.bin
+$ make images # generates all images and save them in install$(XLEN)
+# outputs install$(XLEN)/vmlinux, install$(XLEN)/bbl and install$(XLEN)/bbl.bin
 ```
 
 ## Spike
 You can test your image on spike 
 ```bash
-$ $(RISCV)/bin/spike bbl 2> /dev/null
+$ $(RISCV)/bin/spike bbl
 ```
 Spike allows trace logging
 ```bash
@@ -60,7 +57,7 @@ $ $(RISCV)/bin/spike --log-commits bbl 2> trace.log.commits
 ```
 
 ### Booting from an SD card
-The bootloader of ariane requires a GPT partition table so you first have to create one with gdisk.
+The bootloader of CVA6 requires a GPT partition table so you first have to create one with gdisk.
 
 ```bash
 $ sudo fdisk -l # search for the corresponding disk label (e.g. /dev/sdb)
@@ -74,12 +71,12 @@ $ make bbl.bin # generate the entire bootable image
 
 Then the bbl+linux kernel image can get copied to the sd card with `dd`. __Careful:__  use the same disk label that you found before with `fdisk -l` but with a 1 in the end, e.g. `/dev/sdb` -> `/dev/sdb1`.
 ```bash
-$ sudo dd if=bbl.bin of=/dev/sdb1 status=progress oflag=sync bs=1M
+$ sudo dd if=install$(XLEN)/bbl.bin of=/dev/sdb1 status=progress oflag=sync bs=1M
 ```
 
 ## OS X
 
-Similar steps as above but flashing is slgithly different. Get `sgdisk` using `homebrew`.
+Similar steps as above but flashing is sligthly different. Get `sgdisk` using `homebrew`.
 
 ```
 $ brew install gptfdisk
