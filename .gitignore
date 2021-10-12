@@ -1,6 +1,4 @@
-install
-bbl*
-vmlinux
+install*
 build
 *.elf
 rootfs/tetris
