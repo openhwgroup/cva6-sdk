@@ -6,7 +6,6 @@ FROM ubuntu:20.04
 ARG TZ="Europe/Rome"
 ARG GIT_REPO_URL="https://github.com/openhwgroup/cva6-sdk"
 ARG GIT_REPO_COMMIT="0f605ac"
-ARG CONTAINER_USER="user"
 
 # -----------------------------------------------------------------------------
 # Configure timezone.
@@ -50,23 +49,15 @@ RUN apt-get install -y 		\
 	libncurses-dev
 
 # -----------------------------------------------------------------------------
-# Create a new user.
-# -----------------------------------------------------------------------------
-RUN useradd -ms /bin/bash $CONTAINER_USER
-RUN passwd -d $CONTAINER_USER
-WORKDIR /home/$CONTAINER_USER
-USER $CONTAINER_USER
-
-# -----------------------------------------------------------------------------
 # Download cva6-sdk and build the RISC-V toolchain.
 # -----------------------------------------------------------------------------
-ENV RISCV="/home/$CONTAINER_USER/.local/riscv"
+ENV RISCV="/root/riscv"
 ENV PATH="$PATH:$RISCV/bin"
 
-RUN git clone $GIT_REPO_URL /home/$CONTAINER_USER/cva6-sdk
-WORKDIR /home/$CONTAINER_USER/cva6-sdk
+RUN git clone $GIT_REPO_URL /root/cva6-sdk
+WORKDIR /root/cva6-sdk
 RUN git checkout $GIT_REPO_COMMIT
 RUN git submodule update --init --recursive
 RUN make all
-WORKDIR /home/$CONTAINER_USER
+WORKDIR /root
 

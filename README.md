@@ -97,17 +97,12 @@ You can set:
 - The OS timezone inside the container (argument TZ, default is `Europe/Rome`)
 - CVA6-SDK Git repository url (argument GIT_REPO_URL, default is `"https://github.com/openhwgroup/cva6-sdk"`)
 - CVA6-SDK Git commit to checkout (argument GIT_REPO_COMMIT, default is `0f605ac`)
-- Name of the user inside the container (argument CONTAINER_USER, default is `user`)
 
 Consider that image creation will automatically download and build the RISC-V toolchain, which may be a slow process.
 On the other hand, such a choice is convenient: since any software development will require a working RISC-V toolchain it worths build it once for all on image creation.
 To build the SDK docker image from the repository top-level directory type:
 ```
 $ docker build -t cva6-sdk container
-```
-As an example, to build the image creating a user with the same name of your host user type:
-```
-$ docker build -t cva6-sdk --build-arg CONTAINER_USER=$(whoami) container
 ```
 
 #### Run a container instance
