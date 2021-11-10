@@ -20,3 +20,9 @@
 [submodule "vitetris"]
 	path = vitetris
 	url = https://github.com/pulp-platform/vitetris.git
+[submodule "u-boot"]
+	path = u-boot
+	url = https://github.com/eyssartk/u-boot
+[submodule "opensbi"]
+	path = opensbi
+	url = https://github.com/riscv/opensbi.git
