@@ -119,7 +119,7 @@ $(RISCV)/vmlinux: install-dir $(buildroot_defconfig) $(linux_defconfig) $(busybo
 	cp buildroot/output/images/vmlinux $@
 
 $(RISCV)/Image: $(RISCV)/vmlinux
-	$(OBJCOPY) -O binary -R .note -R .comment -S vmlinux linux.bin
+	$(OBJCOPY) -O binary -R .note -R .comment -S $< $@
 
 $(RISCV)/Image.gz: $(RISCV)/Image
 	gzip -9 --force $< > $@
@@ -145,8 +145,8 @@ $(RISCV)/fw_payload.bin: $(RISCV)/u-boot.bin
 SDDEVICE :=
 # Number of sector required for FWPAYLOAD partition (each sector is 512B)
 FWPAYLOAD_SECTORSTART := 2048
-FWPAYLOAD_SECTORSIZE := $(shell ls -l --block-size=512 $(RISCV)/fw_payload.bin | cut -d " " -f5 )
-FWPAYLOAD_SECTOREND := $(shell echo $(FWPAYLOAD_SECTORSTART)+$(FWPAYLOAD_SECTORSIZE) | bc)
+FWPAYLOAD_SECTORSIZE = $(shell ls -l --block-size=512 $(RISCV)/fw_payload.bin | cut -d " " -f5 )
+FWPAYLOAD_SECTOREND = $(shell echo $(FWPAYLOAD_SECTORSTART)+$(FWPAYLOAD_SECTORSIZE) | bc)
 # Always flash uImage at 512M, easier for u-boot boot command
 UIMAGE_SECTORSTART := 512M
 flash-sdcard:
