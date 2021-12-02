@@ -174,7 +174,7 @@ bbl_binary: $(RISCV)/bbl_binary
 fw_payload.bin: $(RISCV)/fw_payload.bin
 uImage: $(RISCV)/uImage
 
-images: $(CC) $(RISCV)/bbl $(RISCV)/bbl.bin $(RISCV)/bbl_binary
+images: $(CC) $(RISCV)/fw_payload.bin $(RISCV)/uImage
 
 clean:
 	rm -rf $(RISCV)/vmlinux $(RISCV)/bbl $(RISCV)/bbl.bin $(RISCV)/bbl_binary build riscv-pk/build/vmlinux riscv-pk/build/bbl cachetest/*.elf rootfs/tetris rootfs/cachetest.elf
