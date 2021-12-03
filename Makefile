@@ -53,7 +53,6 @@ buildroot-mk       		= -j$(NR_CORES)
 buildroot_defconfig = configs/buildroot$(XLEN)_defconfig
 linux_defconfig = configs/linux$(XLEN)_defconfig
 busybox_defconfig = configs/busybox$(XLEN).config
-uboot_defconfig := configs/uboot$(XLEN)_defconfig
 
 install-dir:
 	mkdir -p $(RISCV)
