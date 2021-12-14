@@ -33,7 +33,6 @@ UIMAGE_ENTRY_POINT  := 0x80200000
 endif
 
 # default configure flags
-fesvr-co              = --prefix=$(RISCV) --target=riscv$(XLEN)-buildroot-linux-gnu
 tests-co              = --prefix=$(RISCV)/target
 
 # specific flags and rules for 32 / 64 version
@@ -44,7 +43,6 @@ isa-sim-co            = --prefix=$(RISCV)
 endif
 
 # default make flags
-fesvr-mk                = -j$(NR_CORES)
 isa-sim-mk              = -j$(NR_CORES)
 tests-mk         		= -j$(NR_CORES)
 buildroot-mk       		= -j$(NR_CORES)
@@ -56,14 +54,6 @@ busybox_defconfig = configs/busybox$(XLEN).config
 
 install-dir:
 	mkdir -p $(RISCV)
-
-fesvr: install-dir $(CC)
-	mkdir -p riscv-fesvr/build
-	cd riscv-fesvr/build;\
-	../configure $(fesvr-co);\
-	make $(fesvr-mk);\
-	make install;\
-	cd $(ROOT)
 
 isa-sim: install-dir $(CC) 
 	mkdir -p riscv-isa-sim/build
@@ -86,7 +76,7 @@ $(CC): $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig)
 	make -C buildroot defconfig BR2_DEFCONFIG=../$(buildroot_defconfig)
 	make -C buildroot host-gcc-final $(buildroot-mk)
 
-all: $(CC) fesvr isa-sim
+all: $(CC) isa-sim
 
 # benchmark for the cache subsystem
 rootfs/cachetest.elf: $(CC)
@@ -163,7 +153,7 @@ clean:
 	make -C opensbi distclean
 
 clean-all: clean
-	rm -rf $(RISCV) riscv-fesvr/build riscv-isa-sim/build riscv-tests/build
+	rm -rf $(RISCV) riscv-isa-sim/build riscv-tests/build
 	make -C buildroot clean
 
 .PHONY: gcc vmlinux images help fw_payload.bin uImage
@@ -176,7 +166,7 @@ help:
 	@echo ""
 	@echo "install [tool] with compiler"
 	@echo "    where tool can be any one of:"
-	@echo "        gcc fesvr isa-sim tests"
+	@echo "        gcc isa-sim tests"
 	@echo ""
 	@echo "build linux images for cva6"
 	@echo "        make images"
