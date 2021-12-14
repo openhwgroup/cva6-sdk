@@ -6,7 +6,7 @@ Included tools:
 * [Spike](https://github.com/riscv/riscv-isa-sim/), the ISA simulator
 * [riscv-tests](https://github.com/riscv/riscv-tests/), a battery of ISA-level tests
 * [riscv-fesvr](https://github.com/riscv/riscv-fesvr/), the host side of a simulation tether that services system calls on behalf of a target machine
-* [u-boot](https://github.com/eyssartk/u-boot/)
+* [u-boot](https://github.com/openhwgroup/u-boot/)
 * [opensbi](https://github.com/riscv/opensbi/), the open-source reference implementation of the RISC-V Supervisor Binary Interface (SBI)
 
 ## Quickstart
