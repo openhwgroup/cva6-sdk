@@ -5,8 +5,9 @@ This repository houses a set of RISCV tools for the [CVA6 core](https://github.c
 Included tools:
 * [Spike](https://github.com/riscv/riscv-isa-sim/), the ISA simulator
 * [riscv-tests](https://github.com/riscv/riscv-tests/), a battery of ISA-level tests
-* [riscv-pk](https://github.com/riscv/riscv-pk/), which contains `bbl`, a boot loader for Linux and similar OS kernels, and `pk`, a proxy kernel that services system calls for a target-machine application by forwarding them to the host machine
 * [riscv-fesvr](https://github.com/riscv/riscv-fesvr/), the host side of a simulation tether that services system calls on behalf of a target machine
+* [u-boot](https://github.com/openhwgroup/u-boot/)
+* [opensbi](https://github.com/riscv/opensbi/), the open-source reference implementation of the RISC-V Supervisor Binary Interface (SBI)
 
 ## Quickstart
 
@@ -36,42 +37,57 @@ $ make all
 ```
 
 ## Linux
-You can also build a compatible linux image with bbl that boots linux on the CVA6 fpga mapping:
+You can also build a compatible Linux image that boots Linux on the CVA6 fpga mapping:
 ```bash
-$ make vmlinux # make only the vmlinux image
-# outputs a vmlinux file in the top directory
-$ make bbl.bin # generate the entire bootable image
-# outputs bbl and bbl.bin
+$ make vmlinux # make only the elf Linux image
+$ make uImage.bin # generate the Linux image with the u-boot wrapper
+$ make fw_payload.bin # generate the OpenSBI + U-Boot payload
+```
+
+Or you can build everything directly with:
+
+```bash
 $ make images # generates all images and save them in install$(XLEN)
-# outputs install$(XLEN)/vmlinux, install$(XLEN)/bbl and install$(XLEN)/bbl.bin
 ```
 
 ## Spike
 You can test your image on spike 
+First, build spike with:
+
 ```bash
-$ $(RISCV)/bin/spike bbl
+$ make isa-sim
 ```
-Spike allows trace logging
+
+Build the OpenSBI firmware with the Linux payload for the Spike platform:
+
 ```bash
-$ $(RISCV)/bin/spike --log-commits bbl 2> trace.log.commits
+$ make spike_payload
+```
+
+You can now launch Spike with OpenSBI + Linux
+
+```bash
+$ install$(XLEN)/bin/spike install$(XLEN)/spike_fw_payload.elf
+```
+
+Spike allows trace logging
+
+```bash
+$ install$(XLEN)/bin/spike --log-commits install$(XLEN)/spike_fw_payload.elf 2> trace.log.commits
 ```
 
 ### Booting from an SD card
-The bootloader of CVA6 requires a GPT partition table so you first have to create one with gdisk.
+
+First compile the SBI firmware and the Linux image:
 
 ```bash
-$ sudo fdisk -l # search for the corresponding disk label (e.g. /dev/sdb)
-$ sudo sgdisk --clear --new=1:2048:67583 --new=2 --typecode=1:3000 --typecode=2:8300 /dev/sdb # create a new gpt partition table and two partitions: 1st partition: 32mb (ONIE boot), second partition: rest (Linux root)
+$ make images
 ```
 
-Now you have to compile the linux kernel:
-```bash
-$ make bbl.bin # generate the entire bootable image
-```
+The flash-sdcard Makefile recipe handle the creation of the GPT partition table and the flashing of fw\_payload.bin and uImage at there correct offset. **Be careful to set the correct SDDEVICE.**
 
-Then the bbl+linux kernel image can get copied to the sd card with `dd`. __Careful:__  use the same disk label that you found before with `fdisk -l` but with a 1 in the end, e.g. `/dev/sdb` -> `/dev/sdb1`.
 ```bash
-$ sudo dd if=install$(XLEN)/bbl.bin of=/dev/sdb1 status=progress oflag=sync bs=1M
+$ sudo -E make flash-sdcard SDDEVICE=/dev/sdb
 ```
 
 ## OS X
@@ -80,8 +96,7 @@ Similar steps as above but flashing is sligthly different. Get `sgdisk` using `h
 
 ```
 $ brew install gptfdisk
-$ sudo sgdisk --clear -g --new=1:2048:67583 --new=2 --typecode=1:3000 --typecode=2:8300 /dev/disk2
-$ sudo dd if=bbl.bin of=/dev/disk2s1  bs=1m
+$ sudo -E make flash-sdcard SDDEVICE=/dev/sdb
 ```
 
 ## OpenOCD - Optional
