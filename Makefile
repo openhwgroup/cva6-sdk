@@ -133,7 +133,7 @@ FWPAYLOAD_SECTOREND = $(shell echo $(FWPAYLOAD_SECTORSTART)+$(FWPAYLOAD_SECTORSI
 UIMAGE_SECTORSTART := 512M
 flash-sdcard:
 	@test -n "$(SDDEVICE)" || (echo 'SDDEVICE must be set, Ex: make flash-sdcard SDDEVICE=/dev/sdc' && exit 1)
-	sgdisk --clear --new=1:$(FWPAYLOAD_SECTORSTART):$(FWPAYLOAD_SECTOREND) --new=2:$(UIMAGE_SECTORSTART):0 --typecode=1:3000 --typecode=2:8300 $(SDDEVICE)
+	sgdisk --clear -g --new=1:$(FWPAYLOAD_SECTORSTART):$(FWPAYLOAD_SECTOREND) --new=2:$(UIMAGE_SECTORSTART):0 --typecode=1:3000 --typecode=2:8300 $(SDDEVICE)
 	dd if=$(RISCV)/fw_payload.bin of=$(SDDEVICE)1 status=progress oflag=sync bs=1M
 	dd if=$(RISCV)/uImage         of=$(SDDEVICE)2 status=progress oflag=sync bs=1M
 
