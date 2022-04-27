@@ -1,7 +1,7 @@
 name: CVA6-SDK Task
 description: Create a CVA6-SDK Project Task
 title: "[TASK] <title>"
-labels: [Task]
+labels: ["task"]
 body:
 - type: checkboxes
   attributes:
