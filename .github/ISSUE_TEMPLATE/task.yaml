@@ -22,3 +22,9 @@ body:
     description: What are the criteria for completion of this task?
   validations:
     required: true
+- type: textarea
+  attributes:
+    label: Current Progress
+    description: Add notes on current progress
+  validations:
+    required: false
