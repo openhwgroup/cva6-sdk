@@ -191,7 +191,7 @@ make alsaqr.dtb
 ```
 
 Please note that you need to load it at the address defined in openSBI (`FW_PAYLOAD_FDT_ADDR=0x82200000`
-in the `platform/fpga/alsaqr/objects.mk` file.
+in the `platform/fpga/alsaqr/objects.mk` file).
 
 This is achieved by the `load_image alsaqr.dtb 0x82200000` inside openocd's config.
 
@@ -210,3 +210,5 @@ echo "Ready for Remote Connections"
 The baudrate is set to `38400`, configure your screen/minicom accordingly.
 
 To speed up the code loading, try to increase the adapter speed inside the openocd cfg.
+
+Last bitstream tested from [this](https://github.com/AlSaqr-platform/he-soc/tree/e7ac6ada9f9e6a3c21e2ed1a865c4e437706ff94) commit.
