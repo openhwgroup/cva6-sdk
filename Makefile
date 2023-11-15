@@ -14,9 +14,8 @@ MKIMAGE     := u-boot/tools/mkimage
 NR_CORES := $(shell nproc)
 
 # SBI options
-PLATFORM := fpga/ariane
-FW_FDT_PATH ?=
-sbi-mk = PLATFORM=$(PLATFORM) CROSS_COMPILE=$(TOOLCHAIN_PREFIX) $(if $(FW_FDT_PATH),FW_FDT_PATH=$(FW_FDT_PATH),)
+PLATFORM := fpga/alsaqr
+sbi-mk = PLATFORM=$(PLATFORM) CROSS_COMPILE=$(TOOLCHAIN_PREFIX)
 ifeq ($(XLEN), 32)
 sbi-mk += PLATFORM_RISCV_ISA=rv32ima PLATFORM_RISCV_XLEN=32
 else
@@ -112,7 +111,7 @@ $(MKIMAGE) u-boot/u-boot.bin: $(CC)
 	make -C u-boot CROSS_COMPILE=$(TOOLCHAIN_PREFIX)
 
 # OpenSBI with u-boot as payload
-$(RISCV)/fw_payload.bin: $(RISCV)/u-boot.bin
+$(RISCV)/fw_payload.bin: $(RISCV)/Image
 	make -C opensbi FW_PAYLOAD_PATH=$< $(sbi-mk)
 	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_payload.elf $(RISCV)/fw_payload.elf
 	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_payload.bin $(RISCV)/fw_payload.bin
@@ -149,6 +148,9 @@ uImage: $(RISCV)/uImage
 spike_payload: $(RISCV)/spike_fw_payload.elf
 
 images: $(CC) $(RISCV)/fw_payload.bin $(RISCV)/uImage
+
+alsaqr.dtb:
+	dtc -I dts opensbi/platform/$(PLATFORM)/fdt_gen/alsaqr.dts -O dtb -o $@
 
 clean:
 	rm -rf $(RISCV)/vmlinux cachetest/*.elf rootfs/tetris rootfs/cachetest.elf
