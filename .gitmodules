@@ -9,9 +9,6 @@
 [submodule "buildroot"]
 	path = buildroot
 	url = https://github.com/buildroot/buildroot.git
-[submodule "vitetris"]
-	path = vitetris
-	url = https://github.com/pulp-platform/vitetris.git
 [submodule "u-boot"]
 	path = u-boot
 	url = https://github.com/openhwgroup/u-boot/
