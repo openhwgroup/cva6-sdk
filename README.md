@@ -190,25 +190,189 @@ It is only left to generate the bitstream:
 make alsaqr.dtb
 ```
 
-Please note that you need to load it at the address defined in openSBI (`FW_PAYLOAD_FDT_ADDR=0x82200000`
+Please note that you need to load it at the address defined in openSBI (`FW_PAYLOAD_FDT_ADDR`
 in the `platform/fpga/alsaqr/objects.mk` file).
 
-This is achieved by the `load_image alsaqr.dtb 0x82200000` inside openocd's config.
+This is achieved by the `load_image alsaqr.dtb 0x81800000` inside openocd's config.
 
 ```
 init
 reset halt
 
 halt
-load_image alsaqr.dtb 0x82200000
-
-echo "Ready for Remote Connections"
+load_image alsaqr.dtb 0x81800000
 ```
 
 ## Important
 
-The baudrate is set to `38400`, configure your screen/minicom accordingly.
+Configure your screen/minicom accordingly to what is written in the `.dtb` and opensbi config.
 
 To speed up the code loading, try to increase the adapter speed inside the openocd cfg.
 
 Last bitstream tested from [this](https://github.com/AlSaqr-platform/he-soc/tree/e7ac6ada9f9e6a3c21e2ed1a865c4e437706ff94) commit.
+
+## Boot on the HyperRAM
+
+Let's define the single chip HyperRAM size as `HypS`, 8MiB in our case.
+
+On the FMC on FPGA we have two parallel HyperBUSes with two Chip selects each. So, four HyperRAMs are instantiated.
+
+The first two work in parallel and handle the first 16MiB, the second two map the upper 16MiB.
+
+This version of the sdk generates a linux image that works with 32MB of RAMs
+
+Setup of the HyperRAM controller: the controller has a set of registers that need to be configured before issuing transactions.
+
+In Alsaqr, the base address is `0x1a101000`
+
+| Register         | Address | Content               |
+| ---------------- | ------- | --------------------- |
+| Address Mask MSB | `0x18`  | `log2(HypS*2)`        |
+| Start Addr CS 0  | `0x40`  | `0x80000000`          |
+| End Addr CS 0    | `0x44`  | `0x80000000 + HypS*2` |
+| Start Addr CS 1  | `0x48`  | `0x80000000 + HypS*2` |
+| End Addr CS 1    | `0x4C`  | `0x80000000 + HypS*4` |
+
+You should program them before loading the device binary tree with openocd:
+
+```
+init
+reset halt
+
+halt
+
+mww 0x1a101018 0x18
+mww 0x1a101040 0x80000000
+mww 0x1a101044 0x81000000
+mww 0x1a101048 0x81000000
+mww 0x1a10104C 0x82000000
+
+load_image alsaqr.dtb 0x81800000
+```
+
+When using the FMC, the bitstream works at 10MHz and the baudrate has to be set to 9600.
+## Boot on the HyperRAM
+
+Let's define the single chip HyperRAM size as `HypS`, 8MiB in our case.
+
+On the FMC on FPGA we have two parallel HyperBUSes with two Chip selects each. So, four HyperRAMs are instantiated.
+
+The first two work in parallel and handle the first 16MiB, the second two map the upper 16MiB.
+
+This version of the sdk generates a linux image that works with 32MB of RAMs
+
+Setup of the HyperRAM controller: the controller has a set of registers that need to be configured before issuing transactions.
+
+In Alsaqr, the base address is `0x1a101000`
+
+| Register         | Address | Content               |
+| ---------------- | ------- | --------------------- |
+| address_mask_msb | `0x18`  | `log2(HypS*2)`        |
+| Start Addr CS 0  | `0x40`  | `0x80000000`          |
+| End Addr CS 0    | `0x44`  | `0x80000000 + HypS*2` |
+| Start Addr CS 1  | `0x48`  | `0x80000000 + HypS*2` |
+| End Addr CS 1    | `0x4C`  | `0x80000000 + HypS*4` |
+
+You should program them before loading the device binary tree with openocd:
+
+```
+init
+reset halt
+
+halt
+
+mww 0x1a101018 0x18
+mww 0x1a101040 0x80000000
+mww 0x1a101044 0x81000000
+mww 0x1a101048 0x81000000
+mww 0x1a10104C 0x82000000
+
+load_image alsaqr.dtb 0x81800000
+```
+
+When using the FMC, the bitstream works at 10MHz and the baudrate has to be set to 9600.## Boot on the HyperRAM
+
+Let's define the single chip HyperRAM size as `HypS`, 8MiB in our case.
+
+On the FMC on FPGA we have two parallel HyperBUSes with two Chip selects each. So, four HyperRAMs are instantiated.
+
+The first two work in parallel and handle the first 16MiB, the second two map the upper 16MiB.
+
+This version of the sdk generates a linux image that works with 32MB of RAMs
+
+Setup of the HyperRAM controller: the controller has a set of registers that need to be configured before issuing transactions.
+
+In Alsaqr, the base address is `0x1a101000`
+
+| Register         | Address | Content               |
+| ---------------- | ------- | --------------------- |
+| address_mask_msb | `0x18`  | `log2(HypS*2)`        |
+| Start Addr CS 0  | `0x40`  | `0x80000000`          |
+| End Addr CS 0    | `0x44`  | `0x80000000 + HypS*2` |
+| Start Addr CS 1  | `0x48`  | `0x80000000 + HypS*2` |
+| End Addr CS 1    | `0x4C`  | `0x80000000 + HypS*4` |
+
+You should program them before loading the device binary tree with openocd:
+
+```
+init
+reset halt
+
+halt
+
+mww 0x1a101018 0x18
+mww 0x1a101040 0x80000000
+mww 0x1a101044 0x81000000
+mww 0x1a101048 0x81000000
+mww 0x1a10104C 0x82000000
+
+load_image alsaqr.dtb 0x81800000
+```
+
+When using the FMC, the bitstream works at 10MHz and the baudrate has to be set to 9600.## Boot on the HyperRAM
+
+Let's define the single chip HyperRAM size as `HypS`, 8MiB in our case.
+
+On the FMC on FPGA we have two parallel HyperBUSes with two Chip selects each. So, four HyperRAMs are instantiated.
+
+The first two work in parallel and handle the first 16MiB, the second two map the upper 16MiB.
+
+This version of the sdk generates a linux image that works with 32MB of RAMs
+
+Setup of the HyperRAM controller: the controller has a set of registers that need to be configured before issuing transactions.
+
+In Alsaqr, the base address is `0x1a101000`
+
+| Register         | Address | Content               |
+| ---------------- | ------- | --------------------- |
+| address_mask_msb | `0x18`  | `log2(HypS*2)`        |
+| Start Addr CS 0  | `0x40`  | `0x80000000`          |
+| End Addr CS 0    | `0x44`  | `0x80000000 + HypS*2` |
+| Start Addr CS 1  | `0x48`  | `0x80000000 + HypS*2` |
+| End Addr CS 1    | `0x4C`  | `0x80000000 + HypS*4` |
+
+You should program them before loading the device binary tree with openocd:
+
+```
+init
+reset halt
+
+halt
+
+mww 0x1a101018 0x18
+mww 0x1a101040 0x80000000
+mww 0x1a101044 0x81000000
+mww 0x1a101048 0x81000000
+mww 0x1a10104C 0x82000000
+
+load_image alsaqr.dtb 0x81800000
+```
+
+When using the FMC, the bitstream works at 10MHz and the baudrate has to be set to 9600.
+
+To generate the bitstream, [this](5f40f309de68356181ce4ab2614e2bfa54d58289) is the last tested commit:
+
+```
+make scripts-bender-fpga exclude-rot=1 exclude-cluster=1
+```
+
