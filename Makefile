@@ -145,6 +145,7 @@ spike_payload: $(RISCV)/spike_fw_payload.elf
 images: $(CC) $(RISCV)/fw_payload.bin $(RISCV)/uImage
 
 alsaqr.dtb:
+	make -C opensbi $(sbi-mk) alsaqr.dts
 	dtc -I dts opensbi/platform/$(PLATFORM)/fdt_gen/alsaqr.dts -O dtb -o $@
 
 clean:
@@ -157,7 +158,7 @@ clean-all: clean
 	rm -rf $(RISCV) riscv-isa-sim/build riscv-tests/build
 	make -C buildroot clean
 
-.PHONY: gcc vmlinux images help fw_payload.bin uImage
+.PHONY: gcc vmlinux images help fw_payload.bin uImage alsaqr.dtb
 
 help:
 	@echo "usage: $(MAKE) [tool/img] ..."

@@ -179,7 +179,7 @@ This will generate Linux's image, containing also the root file system, at `inst
 This image will be opensbi's payload. To generate the full image:
 
 ```
-make fw_payload.bin
+make TARGET_FREQ=<frequency-of-the-bitstream> fw_payload.bin
 ```
 
 At this point, we'll have `fw_payload.elf` inside the `install64` folder, which is the desider binary.
@@ -187,7 +187,7 @@ At this point, we'll have `fw_payload.elf` inside the `install64` folder, which 
 It is only left to generate the bitstream:
 
 ```
-make alsaqr.dtb
+make TARGET_FREQ=<frequency-of-the-bitstream> alsaqr.dtb
 ```
 
 Please note that you need to load it at the address defined in openSBI (`FW_PAYLOAD_FDT_ADDR`
@@ -206,6 +206,17 @@ load_image alsaqr.dtb 0x81800000
 ## Important
 
 Configure your screen/minicom accordingly to what is written in the `.dtb` and opensbi config.
+
+The baudrate is set in OpenSBI and the dtb according to this check:
+
+```
+if(TARGET_FREQ>=50000000)
+  baudrate = 115200
+else if (TARGET_FREQ>=40000000)
+  baudrate = 38400
+else
+  baudrate = 9600
+endif
 
 To speed up the code loading, try to increase the adapter speed inside the openocd cfg.
 
