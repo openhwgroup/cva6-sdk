@@ -217,6 +217,7 @@ else if (TARGET_FREQ>=40000000)
 else
   baudrate = 9600
 endif
+```
 
 To speed up the code loading, try to increase the adapter speed inside the openocd cfg.
 
