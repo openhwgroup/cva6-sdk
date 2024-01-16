@@ -225,6 +225,9 @@ Last bitstream tested from [this](https://github.com/AlSaqr-platform/he-soc/tree
 
 ## Boot on the HyperRAM
 
+Disclaimer: `CONFIG_SMP=y` in the `configs/linux64_defconfig` should changed to `# CONFIG_SMP is not set`
+if you want the boot to succeed with a single core and the Hyper.
+
 Let's define the single chip HyperRAM size as `HypS`, 8MiB in our case.
 
 On the FMC on FPGA we have two parallel HyperBUSes with two Chip selects each. So, four HyperRAMs are instantiated.
@@ -254,12 +257,9 @@ reset halt
 halt
 
 mww 0x1a101018 0x18
-mww 0x1a101040 0x80000000
-mww 0x1a101044 0x81000000
-mww 0x1a101048 0x81000000
-mww 0x1a10104C 0x82000000
 
 load_image alsaqr.dtb 0x81800000
 ```
 
-When using the FMC, the bitstream works at 10MHz and the baudrate has to be set to 9600.
+When using the FMC, the bitstream works at 10MHz and the baudrate has to be set to 9600. Booting Linux on the Hyper is
+considerably slower than the DDR.
