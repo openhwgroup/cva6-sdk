@@ -221,12 +221,9 @@ endif
 
 To speed up the code loading, try to increase the adapter speed inside the openocd cfg.
 
-Last bitstream tested from [this](https://github.com/AlSaqr-platform/he-soc/tree/e7ac6ada9f9e6a3c21e2ed1a865c4e437706ff94) commit.
+Last bitstream tested from [this](https://github.com/AlSaqr-platform/he-soc/tree/2f670143529d349ec6d8f385aac8b8313d323d86) commit.
 
 ## Boot on the HyperRAM
-
-Disclaimer: `CONFIG_SMP=y` in the `configs/linux64_defconfig` should changed to `# CONFIG_SMP is not set`
-if you want the boot to succeed with a single core and the Hyper.
 
 Let's define the single chip HyperRAM size as `HypS`, 8MiB in our case.
 
