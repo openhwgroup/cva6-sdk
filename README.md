@@ -9,7 +9,7 @@ Included tools:
 * [u-boot](https://github.com/openhwgroup/u-boot/)
 * [opensbi](https://github.com/riscv/opensbi/), the open-source reference implementation of the RISC-V Supervisor Binary Interface (SBI)
 
-As of now, only the **Digilent Genesys 2 is supported**. You will need to adapt the SDK to different boards. To add more board support in this repository, you can volunteer to create a new project at the OpenHW Group.
+As of now, the SDK has been designed and tested for the **Digilent Genesys 2** FPGA board. To implement and test SDK for other boards in this repository, you can volunteer to create and drive a new project at the OpenHW Group.
 
 ## Quickstart
 
