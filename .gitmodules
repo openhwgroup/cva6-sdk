@@ -17,4 +17,4 @@
 	url = https://github.com/openhwgroup/u-boot/
 [submodule "opensbi"]
 	path = opensbi
-	url = https://github.com/riscv/opensbi.git
+	url = https://github.com/planvtech/opensbi

@@ -15,6 +15,7 @@ NR_CORES := $(shell nproc)
 
 # SBI options
 PLATFORM := fpga/ariane
+# PLATFORM := fpga/cva6-altera
 FW_FDT_PATH ?=
 sbi-mk = PLATFORM=$(PLATFORM) CROSS_COMPILE=$(TOOLCHAIN_PREFIX) $(if $(FW_FDT_PATH),FW_FDT_PATH=$(FW_FDT_PATH),)
 ifeq ($(XLEN), 32)
