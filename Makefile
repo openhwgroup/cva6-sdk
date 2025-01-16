@@ -25,6 +25,8 @@ sbi-mk += PLATFORM_RISCV_ISA=rv64imafdc PLATFORM_RISCV_XLEN=64
 endif
 
 # U-Boot options
+BOARD = genesysII
+# BOARD = agilex7
 ifeq ($(XLEN), 32)
 UIMAGE_LOAD_ADDRESS := 0x80400000
 UIMAGE_ENTRY_POINT  := 0x80400000
@@ -109,7 +111,7 @@ $(RISCV)/u-boot.bin: u-boot/u-boot.bin
 	cp $< $@
 
 $(MKIMAGE) u-boot/u-boot.bin: $(CC)
-	make -C u-boot openhwgroup_cv$(XLEN)a6_genesysII_defconfig
+	make -C u-boot openhwgroup_cv$(XLEN)a6_$(BOARD)_defconfig
 	make -C u-boot CROSS_COMPILE=$(TOOLCHAIN_PREFIX)
 
 # OpenSBI with u-boot as payload
