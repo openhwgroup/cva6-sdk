@@ -76,6 +76,9 @@ tests: install-dir $(CC)
 	cd $(ROOT)
 
 $(CC): $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig)
+ifeq ($(PLATFORM),fpga/cva6-altera) 
+	cp linux_patch_agilex/* linux_patch/
+endif
 	make -C buildroot defconfig BR2_DEFCONFIG=../$(buildroot_defconfig)
 	make -C buildroot host-gcc-final $(buildroot-mk)
 
@@ -158,6 +161,7 @@ clean:
 	rm -rf $(RISCV)/fw_payload.bin $(RISCV)/uImage $(RISCV)/Image.gz
 	make -C u-boot clean
 	make -C opensbi distclean
+	rm linux_patch/0008*
 
 clean-all: clean
 	rm -rf $(RISCV) riscv-isa-sim/build riscv-tests/build
