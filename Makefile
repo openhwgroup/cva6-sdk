@@ -161,9 +161,11 @@ clean:
 	rm -rf $(RISCV)/fw_payload.bin $(RISCV)/uImage $(RISCV)/Image.gz
 	make -C u-boot clean
 	make -C opensbi distclean
-	rm linux_patch/0008*
 
 clean-all: clean
+ifeq ($(PLATFORM),fpga/cva6-altera) 
+	rm linux_patch/0008*
+endif
 	rm -rf $(RISCV) riscv-isa-sim/build riscv-tests/build
 	make -C buildroot clean
 
