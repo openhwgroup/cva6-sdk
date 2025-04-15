@@ -1,0 +1,2 @@
+source "$BR2_EXTERNAL_EXTENSIONS_PATH/package/vitetris/Config.in"
+source "$BR2_EXTERNAL_EXTENSIONS_PATH/package/cachetest/Config.in"

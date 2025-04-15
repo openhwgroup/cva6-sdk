@@ -6,6 +6,7 @@ RISCV    := $(PWD)/install$(XLEN)
 DEST     := $(abspath $(RISCV))
 PATH     := $(DEST)/bin:$(PATH)
 
+BUILDROOT_EXTERNAL_TREE_PATH := ../br2-ext-tree
 TOOLCHAIN_PREFIX := $(ROOT)/buildroot/output/host/bin/riscv$(XLEN)-buildroot-linux-gnu-
 CC          := $(TOOLCHAIN_PREFIX)gcc
 OBJCOPY     := $(TOOLCHAIN_PREFIX)objcopy
@@ -45,7 +46,7 @@ endif
 # default make flags
 isa-sim-mk              = -j$(NR_CORES)
 tests-mk         		= -j$(NR_CORES)
-buildroot-mk       		= -j$(NR_CORES)
+buildroot-mk       		= BR2_EXTERNAL="$(BUILDROOT_EXTERNAL_TREE_PATH)"
 
 # linux image
 buildroot_defconfig = configs/buildroot$(XLEN)_defconfig
@@ -78,17 +79,7 @@ $(CC): $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig)
 
 all: $(CC) isa-sim
 
-# benchmark for the cache subsystem
-rootfs/cachetest.elf: $(CC)
-	cd ./cachetest/ && $(CC) cachetest.c -o cachetest.elf
-	cp ./cachetest/cachetest.elf $@
-
-# cool command-line tetris
-rootfs/tetris: $(CC)
-	cd ./vitetris/ && make clean && ./configure CC=$(CC) && make
-	cp ./vitetris/tetris $@
-
-$(RISCV)/vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(CC) rootfs/cachetest.elf rootfs/tetris
+$(RISCV)/vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(CC)
 	mkdir -p $(RISCV)
 	make -C buildroot $(buildroot-mk)
 	cp buildroot/output/images/vmlinux $@
@@ -151,7 +142,7 @@ spike_payload: $(RISCV)/spike_fw_payload.elf
 images: $(CC) $(RISCV)/fw_payload.bin $(RISCV)/uImage
 
 clean:
-	rm -rf $(RISCV)/vmlinux cachetest/*.elf rootfs/tetris rootfs/cachetest.elf
+	rm -rf $(RISCV)/vmlinux
 	rm -rf $(RISCV)/fw_payload.bin $(RISCV)/uImage $(RISCV)/Image.gz
 	make -C u-boot clean
 	make -C opensbi distclean
