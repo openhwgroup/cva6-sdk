@@ -10,19 +10,9 @@ BUILDROOT_EXTERNAL_TREE_PATH := ../br2-ext-tree
 TOOLCHAIN_PREFIX := $(ROOT)/buildroot/output/host/bin/riscv$(XLEN)-buildroot-linux-gnu-
 CC          := $(TOOLCHAIN_PREFIX)gcc
 OBJCOPY     := $(TOOLCHAIN_PREFIX)objcopy
-MKIMAGE     := u-boot/tools/mkimage
+MKIMAGE     := $(ROOT)/buildroot/output/host/bin/mkimage
 
 NR_CORES := $(shell nproc)
-
-# SBI options
-PLATFORM := fpga/ariane
-FW_FDT_PATH ?=
-sbi-mk = PLATFORM=$(PLATFORM) CROSS_COMPILE=$(TOOLCHAIN_PREFIX) $(if $(FW_FDT_PATH),FW_FDT_PATH=$(FW_FDT_PATH),)
-ifeq ($(XLEN), 32)
-sbi-mk += PLATFORM_RISCV_ISA=rv32ima_zicsr_zifencei PLATFORM_RISCV_XLEN=32
-else
-sbi-mk += PLATFORM_RISCV_ISA=rv64imafdc_zicsr_zifencei PLATFORM_RISCV_XLEN=64
-endif
 
 # U-Boot options
 ifeq ($(XLEN), 32)
@@ -46,9 +36,8 @@ endif
 # default make flags
 isa-sim-mk              = -j$(NR_CORES)
 tests-mk         		= -j$(NR_CORES)
-buildroot-mk       		= BR2_EXTERNAL="$(BUILDROOT_EXTERNAL_TREE_PATH)"
 
-# linux image
+# configs
 buildroot_defconfig = configs/buildroot$(XLEN)_defconfig
 linux_defconfig = configs/linux$(XLEN)_defconfig
 busybox_defconfig = configs/busybox$(XLEN).config
@@ -73,40 +62,26 @@ tests: install-dir $(CC)
 	make install;\
 	cd $(ROOT)
 
-$(CC): $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig)
-	make -C buildroot defconfig BR2_DEFCONFIG=../$(buildroot_defconfig)
-	make -C buildroot host-gcc-final $(buildroot-mk)
-
 all: $(CC) isa-sim
 
-$(RISCV)/vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(CC)
+full_buildroot_build: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig)
 	mkdir -p $(RISCV)
-	make -C buildroot $(buildroot-mk)
-	cp buildroot/output/images/vmlinux $@
+	make -C buildroot BR2_EXTERNAL="$(BUILDROOT_EXTERNAL_TREE_PATH)" BR2_DEFCONFIG=../$(buildroot_defconfig) defconfig
+	make -C buildroot BINARIES_DIR=$(RISCV)
+
+$(RISCV)/vmlinux: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) full_buildroot_build
+
+$(RISCV)/fw_payload.bin: full_buildroot_build
 
 $(RISCV)/Image: $(RISCV)/vmlinux
 	$(OBJCOPY) -O binary -R .note -R .comment -S $< $@
 
 $(RISCV)/Image.gz: $(RISCV)/Image
-	gzip -9 -k --force $< > $@
+	gzip -n -f -9 -k $< > $@
 
-# U-Boot-compatible Linux image
-$(RISCV)/uImage: $(RISCV)/Image.gz $(MKIMAGE)
+# U-Boot wrapper around compressed Linux image
+$(RISCV)/uImage: $(RISCV)/Image.gz
 	$(MKIMAGE) -A riscv -O linux -T kernel -a $(UIMAGE_LOAD_ADDRESS) -e $(UIMAGE_ENTRY_POINT) -C gzip -n "CV$(XLEN)A6Linux" -d $< $@
-
-$(RISCV)/u-boot.bin: u-boot/u-boot.bin
-	mkdir -p $(RISCV)
-	cp $< $@
-
-$(MKIMAGE) u-boot/u-boot.bin: $(CC)
-	make -C u-boot openhwgroup_cv$(XLEN)a6_genesysII_defconfig
-	make -C u-boot CROSS_COMPILE=$(TOOLCHAIN_PREFIX)
-
-# OpenSBI with u-boot as payload
-$(RISCV)/fw_payload.bin: $(RISCV)/u-boot.bin
-	make -C opensbi FW_PAYLOAD_PATH=$< $(sbi-mk)
-	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_payload.elf $(RISCV)/fw_payload.elf
-	cp opensbi/build/platform/$(PLATFORM)/firmware/fw_payload.bin $(RISCV)/fw_payload.bin
 
 # OpenSBI for Spike with Linux as payload
 $(RISCV)/spike_fw_payload.elf: PLATFORM=generic
@@ -139,19 +114,19 @@ fw_payload.bin: $(RISCV)/fw_payload.bin
 uImage: $(RISCV)/uImage
 spike_payload: $(RISCV)/spike_fw_payload.elf
 
-images: $(CC) $(RISCV)/fw_payload.bin $(RISCV)/uImage
+images: $(RISCV)/fw_payload.bin $(RISCV)/uImage
 
 clean:
-	rm -rf $(RISCV)/vmlinux
-	rm -rf $(RISCV)/fw_payload.bin $(RISCV)/uImage $(RISCV)/Image.gz
-	make -C u-boot clean
-	make -C opensbi distclean
+	rm -f $(RISCV)/fw_payload.bin $(RISCV)/fw_payload.elf \
+		$(RISCV)/uImage $(RISCV)/u-boot.bin \
+		$(RISCV)/vmlinux $(RISCV)/Image $(RISCV)/Image.gz \
+		$(RISCV)/rootfs.cpio $(RISCV)/rootfs.cpio.gz 
 
 clean-all: clean
 	rm -rf $(RISCV) riscv-isa-sim/build riscv-tests/build
 	make -C buildroot clean
 
-.PHONY: gcc vmlinux images help fw_payload.bin uImage
+.PHONY: gcc vmlinux images help fw_payload.bin uImage install-dir full_buildroot_build
 
 help:
 	@echo "usage: $(MAKE) [tool/img] ..."

@@ -9,9 +9,3 @@
 [submodule "buildroot"]
 	path = buildroot
 	url = git://git.buildroot.net/buildroot
-[submodule "u-boot"]
-	path = u-boot
-	url = https://github.com/akorb/u-boot.git
-[submodule "opensbi"]
-	path = opensbi
-	url = https://github.com/riscv/opensbi.git
