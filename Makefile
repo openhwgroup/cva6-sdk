@@ -23,9 +23,6 @@ UIMAGE_LOAD_ADDRESS := 0x80200000
 UIMAGE_ENTRY_POINT  := 0x80200000
 endif
 
-# default configure flags
-tests-co              = --prefix=$(RISCV)/target
-
 # specific flags and rules for 32 / 64 version
 ifeq ($(XLEN), 32)
 isa-sim-co            = --prefix=$(RISCV) --with-isa=RV32IMA --with-priv=MSU
@@ -35,7 +32,6 @@ endif
 
 # default make flags
 isa-sim-mk              = -j$(NR_CORES)
-tests-mk         		= -j$(NR_CORES)
 
 # configs
 buildroot_defconfig = configs/buildroot$(XLEN)_defconfig
@@ -50,15 +46,6 @@ isa-sim: install-dir $(CC)
 	cd riscv-isa-sim/build;\
 	../configure $(isa-sim-co);\
 	make $(isa-sim-mk);\
-	make install;\
-	cd $(ROOT)
-
-tests: install-dir $(CC)
-	mkdir -p riscv-tests/build
-	cd riscv-tests/build;\
-	autoconf;\
-	../configure $(tests-co);\
-	make $(tests-mk);\
 	make install;\
 	cd $(ROOT)
 
@@ -123,7 +110,7 @@ clean:
 		$(RISCV)/rootfs.cpio $(RISCV)/rootfs.cpio.gz 
 
 clean-all: clean
-	rm -rf $(RISCV) riscv-isa-sim/build riscv-tests/build
+	rm -rf $(RISCV) riscv-isa-sim/build
 	make -C buildroot clean
 
 .PHONY: gcc vmlinux images help fw_payload.bin uImage install-dir full_buildroot_build
@@ -136,7 +123,7 @@ help:
 	@echo ""
 	@echo "install [tool] with compiler"
 	@echo "    where tool can be any one of:"
-	@echo "        gcc isa-sim tests"
+	@echo "        gcc isa-sim"
 	@echo ""
 	@echo "build linux images for cva6"
 	@echo "        make images"
