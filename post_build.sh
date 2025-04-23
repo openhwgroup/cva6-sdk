@@ -15,7 +15,7 @@ else
     exit 1
 fi
 
-# Create the u-boot image
-# cp "$BOARD_DIR"/star64-uboot-fit-image.its "$BINARIES_DIR"
-# ${HOST_DIR}/bin/mkimage -f "$BINARIES_DIR"/star64-uboot-fit-image.its -A riscv -O u-boot -T firmware "$BINARIES_DIR"/opensbi_uboot_payload.img
-${HOST_DIR}/bin/mkimage -A riscv -O linux -T kernel -a $UIMAGE_LOAD_ADDRESS -e $UIMAGE_ENTRY_POINT -C gzip -n $IMAGE_NAME -d "$BINARIES_DIR"/Image.gz "$BINARIES_DIR"/uImage
+# Create the Linux image with u-boot header (uImage)
+${HOST_DIR}/bin/mkimage -A riscv -O linux -T kernel -a $UIMAGE_LOAD_ADDRESS -e $UIMAGE_ENTRY_POINT -C gzip -n $IMAGE_NAME -d "$BINARIES_DIR/Image.gz" "$BINARIES_DIR/uImage"
+
+support/scripts/genimage.sh -c ../genimage.cfg
