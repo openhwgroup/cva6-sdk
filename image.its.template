@@ -1,26 +1,26 @@
 /dts-v1/;
 
 / {
-    description = "CV64A6Linux";
+    description = "%IMAGE_NAME%";
     #address-cells = <1>;
 
     images {
             kernel-1 {
                 description = "Linux Kernel";
-                data = /incbin/("install64/Image.gz");
+                data = /incbin/("%BINARIES_DIR%/Image.gz");
                 type = "kernel";
                 arch = "riscv";
                 os = "linux";
                 compression = "gzip";
-                load = <0x80200000>;
-                entry = <0x80200000>;
+                load = <%KERNEL_LOAD_ADDRESS%>;
+                entry = <%KERNEL_ENTRY_ADDRESS%>;
                 hash {
                 algo = "sha256";
                 };
             };
             fdt-1 {
                     description = "DTB";
-                    data = /incbin/("buildroot/output/build/uboot-custom/dts/dt.dtb");
+                    data = /incbin/("%BINARIES_DIR%/u-boot.dtb");
                     type = "flat_dt";
                     arch = "riscv";
                     compression = "none";
@@ -30,7 +30,7 @@
             };
             ramdisk-1 {
                     description = "Initial ramdisk";
-                    data = /incbin/("install64/rootfs.cpio.gz");
+                    data = /incbin/("%BINARIES_DIR%/rootfs.cpio.gz");
                     type = "ramdisk";
                     arch = "riscv";
                     os = "linux";
