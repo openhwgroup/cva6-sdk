@@ -142,6 +142,16 @@ format-sd: $(SDDEVICE)
 	@test -n "$(SDDEVICE)" || (echo 'SDDEVICE must be set, Ex: make flash-sdcard SDDEVICE=/dev/sdc' && exit 1)
 	sgdisk --clear -g --new=1:$(FWPAYLOAD_SECTORSTART):$(FWPAYLOAD_SECTOREND) --new=2:$(UIMAGE_SECTORSTART):${UIMAGE_SECTOREND} --typecode=1:3000 --typecode=2:8300 $(SDDEVICE)
 
+# flash-file and format-file are basically the same as the sdcard ones but aum to use a file
+
+flash-file: format-file
+	dd if=$(RISCV)/fw_payload.bin of=$(IMGFILE) seek=${FWPAYLOAD_SECTORSTART} status=progress conv=notrunc bs=512
+	dd if=$(RISCV)/uImage         of=$(IMGFILE) seek=$(UIMAGE_SECTORSTART) status=progress conv=notrunc bs=1
+
+format-file:
+	@test -n "$(IMGFILE)" || (echo 'IMGFILE must be set, Ex: make format-file IMGFILE=output.img' && exit 1)
+	sgdisk --clear -g --new=1:$(FWPAYLOAD_SECTORSTART):$(FWPAYLOAD_SECTOREND) --new=2:$(UIMAGE_SECTORSTART):${UIMAGE_SECTOREND} --typecode=1:3000 --typecode=2:8300 $(IMGFILE)
+
 # specific recipes
 gcc: $(CC)
 vmlinux: $(RISCV)/vmlinux
