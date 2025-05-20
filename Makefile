@@ -26,4 +26,4 @@ clean:
 clean-all: clean
 	make -C buildroot clean
 
-.PHONY: clean clean-all
+.PHONY: all clean clean-all
