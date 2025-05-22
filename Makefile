@@ -21,7 +21,7 @@ clean:
 	rm -f $(RISCV)/fw_payload.bin $(RISCV)/fw_payload.elf \
 		$(RISCV)/uImage $(RISCV)/u-boot.bin \
 		$(RISCV)/vmlinux $(RISCV)/Image $(RISCV)/Image.gz \
-		$(RISCV)/rootfs.cpio $(RISCV)/rootfs.cpio.gz 
+		$(RISCV)/rootfs.cpio $(RISCV)/rootfs.cpio.gz
 
 clean-all: clean
 	make -C buildroot clean
