@@ -1,4 +1,4 @@
-From 9fdf80be437321db105042b9ca5710cfd025418a Mon Sep 17 00:00:00 2001
+From 7b9c15354edc0f7f03153274482c4efdd7e63593 Mon Sep 17 00:00:00 2001
 From: "Korb, Andreas" <andreas.korb@aisec.fraunhofer.de>
 Date: Wed, 9 Apr 2025 16:35:06 +0200
 Subject: [PATCH] Incorporate lowrisc drivers for kernel 6.14
@@ -8,19 +8,19 @@ Subject: [PATCH] Incorporate lowrisc drivers for kernel 6.14
  drivers/net/ethernet/Makefile                 |   1 +
  drivers/net/ethernet/lowrisc/Kconfig          |  26 +
  drivers/net/ethernet/lowrisc/Makefile         |   6 +
- drivers/net/ethernet/lowrisc/lowrisc_100MHz.c | 823 ++++++++++++++++++
+ drivers/net/ethernet/lowrisc/lowrisc_100MHz.c | 800 ++++++++++++++++++
  drivers/net/ethernet/lowrisc/lowrisc_100MHz.h |  55 ++
- 6 files changed, 912 insertions(+)
+ 6 files changed, 889 insertions(+)
  create mode 100644 drivers/net/ethernet/lowrisc/Kconfig
  create mode 100644 drivers/net/ethernet/lowrisc/Makefile
  create mode 100644 drivers/net/ethernet/lowrisc/lowrisc_100MHz.c
  create mode 100644 drivers/net/ethernet/lowrisc/lowrisc_100MHz.h
 
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index 977b42bc1..9c7214e70 100644
+index f86d4557d..132ca65d4 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
-@@ -129,6 +129,7 @@ source "drivers/net/ethernet/mscc/Kconfig"
+@@ -130,6 +130,7 @@ source "drivers/net/ethernet/mscc/Kconfig"
  source "drivers/net/ethernet/microsoft/Kconfig"
  source "drivers/net/ethernet/moxa/Kconfig"
  source "drivers/net/ethernet/myricom/Kconfig"
@@ -29,10 +29,10 @@ index 977b42bc1..9c7214e70 100644
  config FEALNX
  	tristate "Myson MTD-8xx PCI Ethernet support"
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index 99fa180de..3b9d15a07 100644
+index 671823394..d8055605c 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
-@@ -56,6 +56,7 @@ obj-$(CONFIG_KORINA) += korina.o
+@@ -57,6 +57,7 @@ obj-$(CONFIG_KORINA) += korina.o
  obj-$(CONFIG_LANTIQ_ETOP) += lantiq_etop.o
  obj-$(CONFIG_LANTIQ_XRX200) += lantiq_xrx200.o
  obj-$(CONFIG_NET_VENDOR_LITEX) += litex/
@@ -86,10 +86,10 @@ index 000000000..4eb3adee1
 +CFLAGS_lowrisc_100MHz.o := -DDEBUG
 diff --git a/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c b/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c
 new file mode 100644
-index 000000000..7293698a6
+index 000000000..c0c0dab68
 --- /dev/null
 +++ b/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c
-@@ -0,0 +1,823 @@
+@@ -0,0 +1,800 @@
 +/*
 + * Lowrisc Ether100MHz Linux driver for the Lowrisc Ethernet 100MHz device.
 + *
@@ -155,11 +155,7 @@ index 000000000..7293698a6
 +/**
 + * struct net_local - Our private per device data
 + * @ndev:		instance of the network device
-+ * @reset_lock:		lock used for synchronization
-+ * @phy_dev:		pointer to the PHY device
-+ * @phy_node:		pointer to the PHY device node
-+ * @mii_bus:		pointer to the MII bus
-+ * @last_link:		last link status
++ * @mii_bus:	pointer to the MII bus
 + */
 +struct net_local {
 +	struct mdiobb_ctrl ctrl; /* must be first for bitbang driver to work */
@@ -167,7 +163,6 @@ index 000000000..7293698a6
 +	struct net_device *ndev;
 +	u32 msg_enable;
 +
-+	struct phy_device *phy_dev;
 +	struct mii_bus *mii_bus;
 +	int last_duplex;
 +	int last_carrier;
@@ -175,7 +170,7 @@ index 000000000..7293698a6
 +	/* Spinlock */
 +	struct mutex lock;
 +	uint32_t last_mdio_gpio;
-+	int irq, num_tests, phy_addr;
++	int irq;
 +
 +	struct napi_struct napi;
 +};
@@ -301,7 +296,11 @@ index 000000000..7293698a6
 +{
 +	struct net_local *priv = netdev_priv(ndev);
 +	struct sockaddr *addr = address;
-+	dev_addr_mod(ndev, 0, addr->sa_data, ndev->addr_len);
++
++	if (netif_running(ndev))
++		return -EBUSY;
++
++	eth_hw_addr_set(ndev, addr->sa_data);
 +	lowrisc_update_address(priv, ndev->dev_addr);
 +	return 0;
 +}
@@ -347,19 +346,20 @@ index 000000000..7293698a6
 +{
 +	struct net_local *priv = netdev_priv(ndev);
 +
++	BUG_ON(!ndev->phydev);
++
 +	netif_stop_queue(ndev);
 +	napi_disable(&priv->napi);
 +	mutex_lock(&priv->lock);
 +	eth_disable_irq(priv);
 +	mutex_unlock(&priv->lock);
-+	if (priv->irq)
-+		free_irq(priv->irq, priv);
-+	priv->irq = 0;
-+	printk("Close device, free interrupt\n");
 +
-+	if (priv->phy_dev)
-+		phy_disconnect(priv->phy_dev);
-+	priv->phy_dev = NULL;
++	printk("Close device, free interrupt\n");
++	free_irq(priv->irq, priv);
++	phy_disconnect(ndev->phydev);
++
++	mdiobus_unregister(priv->mii_bus);
++	free_mdio_bitbang(priv->mii_bus);
 +
 +	return 0;
 +}
@@ -381,7 +381,7 @@ index 000000000..7293698a6
 +static void lowrisc_phy_adjust_link(struct net_device *ndev)
 +{
 +	struct net_local *priv = netdev_priv(ndev);
-+	struct phy_device *phy_dev = priv->phy_dev;
++	struct phy_device *phy_dev = ndev->phydev;
 +	int carrier;
 +
 +	if (phy_dev->duplex != priv->last_duplex) {
@@ -408,33 +408,18 @@ index 000000000..7293698a6
 +{
 +	struct net_local *priv = netdev_priv(ndev);
 +	struct phy_device *phydev = NULL;
-+	const char *phyname;
 +
-+	BUG_ON(priv->phy_dev);
++	BUG_ON(ndev->phydev);
 +
-+	/* find the first (lowest address) PHY
-+	 * on the current MAC's MII bus
-+	 */
-+	for (priv->phy_addr = 1; priv->phy_addr < PHY_MAX_ADDR;
-+	     priv->phy_addr++) {
-+		phydev = mdiobus_get_phy(priv->mii_bus, priv->phy_addr);
-+		if (phydev) {
-+			/* break out with first one found */
-+			break;
-+		}
-+	}
++	phydev = phy_find_first(priv->mii_bus);
 +	if (!phydev) {
 +		netdev_err(ndev, "no PHY found in range address 0..%d\n",
 +			   PHY_MAX_ADDR - 1);
 +		return -ENODEV;
 +	}
 +
-+	phyname = phydev_name(phydev);
-+	printk("Probing %s (address %d)\n", phyname, priv->phy_addr);
-+
-+	phydev = phy_connect(ndev, phyname, lowrisc_phy_adjust_link,
-+			     PHY_INTERFACE_MODE_MII);
-+
++	phy_connect_direct(ndev, phydev, lowrisc_phy_adjust_link, PHY_INTERFACE_MODE_MII);
++	
 +	if (IS_ERR(phydev)) {
 +		netdev_err(ndev, "Could not attach to PHY\n");
 +		return PTR_ERR(phydev);
@@ -445,7 +430,6 @@ index 000000000..7293698a6
 +
 +	phy_attached_info(phydev);
 +
-+	priv->phy_dev = phydev;
 +	priv->last_duplex = -1;
 +	priv->last_carrier = -1;
 +
@@ -617,7 +601,7 @@ index 000000000..7293698a6
 +	}
 +}
 +
-+irqreturn_t lowrisc_ether_isr(int irq, void *priv_id)
++static irqreturn_t lowrisc_ether_isr(int irq, void *priv_id)
 +{
 +	int rsr = 0;
 +	struct net_local *priv = priv_id;
@@ -645,7 +629,7 @@ index 000000000..7293698a6
 +			     void *p)
 +{
 +	struct net_local *priv = netdev_priv(ndev);
-+	struct phy_device *phy = priv->phy_dev;
++	struct phy_device *phy = ndev->phydev;
 +
 +	u32 *regs_buff = p;
 +	int i;
@@ -690,11 +674,13 @@ index 000000000..7293698a6
 +	/* Set the MAC address each time opened */
 +	lowrisc_update_address(priv, ndev->dev_addr);
 +
-+	if (priv->phy_dev) {
-+		linkmode_copy(priv->phy_dev->advertising,
-+			      priv->phy_dev->supported);
-+		phy_start(priv->phy_dev);
++	retval = lowrisc_mii_init(ndev);
++	if (retval) {
++		dev_err(&ndev->dev, "Failed to initialize Phy\n");
++		retval = -ENODEV;
++		return retval;
 +	}
++	phy_start(ndev->phydev);
 +
 +	/* Grab the IRQ */
 +	printk("Open device, request interrupt %d\n", priv->irq);
@@ -702,9 +688,7 @@ index 000000000..7293698a6
 +	if (retval) {
 +		dev_err(&priv->ndev->dev, "Could not allocate interrupt %d\n",
 +			priv->irq);
-+		if (priv->phy_dev)
-+			phy_disconnect(priv->phy_dev);
-+		priv->phy_dev = NULL;
++		phy_disconnect(ndev->phydev);
 +		return retval;
 +	}
 +
@@ -755,8 +739,7 @@ index 000000000..7293698a6
 +static int lowrisc_mii_ioctl(struct net_device *netdev, struct ifreq *ifr,
 +			     int cmd)
 +{
-+	struct net_local *priv = netdev_priv(netdev);
-+	struct phy_device *phy = priv->phy_dev;
++	struct phy_device *phy = netdev->phydev;
 +	struct mii_ioctl_data *data = if_mii(ifr);
 +
 +	switch (cmd) {
@@ -826,23 +809,18 @@ index 000000000..7293698a6
 +	unsigned char mac_address[7];
 +	int rc = 0;
 +
-+	lowrisc_ethernet = platform_get_resource(ofdev, IORESOURCE_MEM, 0);
-+
 +	/* Create an ethernet device instance */
-+	ndev = alloc_etherdev(sizeof(struct net_local));
++	ndev = devm_alloc_etherdev(dev, sizeof(struct net_local));
 +	if (!ndev)
 +		return -ENOMEM;
 +
 +	dev_set_drvdata(dev, ndev);
 +	SET_NETDEV_DEV(ndev, &ofdev->dev);
-+	platform_set_drvdata(ofdev, ndev);
 +
 +	priv = netdev_priv(ndev);
 +	priv->ndev = ndev;
-+	priv->ioaddr = devm_ioremap_resource(&ofdev->dev, lowrisc_ethernet);
++	priv->ioaddr = devm_platform_get_and_ioremap_resource(ofdev, 0, &lowrisc_ethernet);
 +	mutex_init(&priv->lock);
-+
-+	priv->num_tests = 1;
 +
 +	ndev->netdev_ops = &lowrisc_netdev_ops;
 +	ndev->flags &= ~IFF_MULTICAST;
@@ -857,12 +835,11 @@ index 000000000..7293698a6
 +
 +	/* get the MAC address set by the boot loader */
 +	lowrisc_read_mac_address(priv, mac_address);
-+	dev_addr_mod(ndev, 0, mac_address, ETH_ALEN);
++	eth_hw_addr_set(ndev, mac_address);
++	dev_info(dev, "MAC Address: %pM\n", mac_address);
 +
 +	/* Set the MAC address in the Ether100MHz device */
 +	lowrisc_update_address(priv, ndev->dev_addr);
-+
-+	lowrisc_mii_init(ndev);
 +
 +	/* Finally, register the device */
 +	rc = register_netdev(ndev);
@@ -887,14 +864,14 @@ index 000000000..7293698a6
 +};
 +MODULE_DEVICE_TABLE(of, lowrisc_100MHz_of_match);
 +
-+void lowrisc_100MHz_free(struct platform_device *of_dev)
++static void lowrisc_100MHz_free(struct platform_device *of_dev)
 +{
 +	struct resource *iomem =
 +		platform_get_resource(of_dev, IORESOURCE_MEM, 0);
 +	release_mem_region(iomem->start, resource_size(iomem));
 +}
 +
-+void lowrisc_100MHz_unregister(struct platform_device *of_dev)
++static void lowrisc_100MHz_unregister(struct platform_device *of_dev)
 +{
 +	lowrisc_100MHz_free(of_dev);
 +}
@@ -975,5 +952,5 @@ index 000000000..9d227c10d
 +
 +#endif
 -- 
-2.43.0
+2.39.5
 
