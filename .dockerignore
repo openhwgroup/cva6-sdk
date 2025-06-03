@@ -1,0 +1,6 @@
+/install*/
+image.its
+buildroot/output
+.git
+.github
+.vscode

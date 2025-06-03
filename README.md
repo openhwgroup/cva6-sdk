@@ -1,127 +1,94 @@
 # CVA6 SDK
 
-This repository houses a set of RISCV tools for the [CVA6 core](https://github.com/openhwgroup/cva6). Most importantly it **does not contain openOCD**.
-
-Included tools:
-* [Spike](https://github.com/riscv/riscv-isa-sim/), the ISA simulator
-* [riscv-tests](https://github.com/riscv/riscv-tests/), a battery of ISA-level tests
-* [riscv-fesvr](https://github.com/riscv/riscv-fesvr/), the host side of a simulation tether that services system calls on behalf of a target machine
-* [u-boot](https://github.com/openhwgroup/u-boot/)
-* [opensbi](https://github.com/riscv/opensbi/), the open-source reference implementation of the RISC-V Supervisor Binary Interface (SBI)
+This repository houses a set of RISCV tools for the [CVA6 core](https://github.com/openhwgroup/cva6).
+Most importantly, it **does not contain openOCD**.
 
 As of now, the SDK has been designed and tested for the **Digilent Genesys 2** FPGA board. To implement and test SDK for other boards in this repository, you can volunteer to create and drive a new project at the OpenHW Group.
 
 ## Quickstart
 
-Requirements Ubuntu:
+Below are the packages required to build and flash the Linux image for CVA6 on a Genesys 2 board.
+
+Ubuntu (tested on 24.04):
 ```console
-$ sudo apt-get install autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev libusb-1.0-0-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev device-tree-compiler pkg-config libexpat-dev
+$ sudo apt-get install make gcc g++ file git wget cpio unzip rsync bc bzip2 autoconf libssl-dev libgnutls28-dev
 ```
 
-Requirements Fedora:
+Fedora (tested on 42):
 ```console
-$ sudo dnf install autoconf automake @development-tools curl dtc libmpc-devel mpfr-devel gmp-devel libusb-devel gawk gcc-c++ bison flex texinfo gperf libtool patchutils bc zlib-devel expat-devel
+$ sudo dnf install make gcc g++ perl which awk git bc rsync cpio wget patch openssl-devel openssl-devel-engine gnutls-devel
 ```
-You can select the XLEN by setting it in the Makefile.
-Then compile the Linux images with
+
+Both the CVA6 chip and this SDK are compiled for 64-bit by default.
+You can select the XLEN (i.e., 32- or 64-bit) by setting the XLEN variable on `make`.
+Compile the image with:
 
 ```console
 $ git submodule update --init --recursive
-$ make images
+$ make  # or `make XLEN=32` for 32-bit
 ```
 
-## Environment Variables
+This builds a RISC-V toolchain, OpenSBI, u-boot including a corresponding device tree, the Linux kernel, and the initramfs including the rootfs.
 
-If you want to cross compile other projects for this target you can add `buildroot/output/host/bin/` to your path in order to later make use of the installed tools after compiling them with :
+By default, the final image is generated at `install<XLEN>/sdcard.img`.
+To change the location, set the `OUTPUT` variable in the `make` command like `make OUTPUT=build`.
 
-```bash
-$ make all
+## Flash to SD card
+
+```console
+$ dd if=install64/sdcard.img of=/dev/sd<device> status=progress oflag=sync bs=4M conv=sparse
 ```
 
-## Linux
-You can also build a compatible Linux image that boots Linux on the CVA6 fpga mapping:
-```bash
-$ make vmlinux # make only the elf Linux image
-$ make uImage.bin # generate the Linux image with the u-boot wrapper
-$ make fw_payload.bin # generate the OpenSBI + U-Boot payload
-```
+Note that you need to change `<device>` to the actual device letter.
+You can use `lsblk` or `fdisk -l` to figure out the path to your SD card.
 
-Or you can build everything directly with:
+## Repository content
 
-```bash
-$ make images # generates all images and save them in install$(XLEN)
-```
+- **./br2-ext-tree/**: Extension tree for buildroot. This directory contains packages which are not part of the official buildroot package list.
+- **./buildroot/**: The mainline buildroot repository without any custom changes. It is a git submodule.
+- **./configs/**: Contains relevant config files.
+- **./linux_patch/**: Contains patches for the Linux kernel which are applied by buildroot before building it. Currently, it only contains the Ethernet driver for the [open-source Ethernet media access controller](https://github.com/lowRISC/ariane-ethernet) by lowRISC. This driver is not included in the Linux mainline. Without it, ethernet will not work with the stock CVA6.
+- **./rootfs/**: The filesystem overlay. Put files here if you want to use them on your RISC-V system.
+- **./Dockerfile**: Dockerfile to build the target image. Explained in further detail below.
+- **./genimage.cfg**: This defines the structure and content of the final image `sdcard.img`.
+- **./image.its.template**: This defines the content of the [Flat Image Tree (FIT)](https://docs.u-boot.org/en/stable/usage/fit/howto.html) used by u-boot to package the boot components it is meant to read and launch. The FIT image is part of `sdcard.img`.
+- **./permission_table.txt**: Used by buildroot to set the permissions of custom files for the target. 
+- **./post_image.sh**: Called by buildroot after all components have been built. It packages them into the final image `sdcard.img`.
 
-## Spike
-You can test your image on spike 
-First, build spike with:
+We use a custom U-Boot repository that includes required changes.
+Its URL is defined in the `buildroot/buildroot*_defconfig` file under the `BR2_TARGET_UBOOT_CUSTOM_REPO_URL` variable.
 
-```bash
-$ make isa-sim
-```
+## Using toolchain outside of the SDK
 
-Build the OpenSBI firmware with the Linux payload for the Spike platform:
+See [Using the generated toolchain outside Buildroot](https://buildroot.org/downloads/manual/using-buildroot-toolchain.txt) from the buildroot documentation to see how to do it.
 
-```bash
-$ make spike_payload
-```
-
-You can now launch Spike with OpenSBI + Linux
-
-```bash
-$ install$(XLEN)/bin/spike install$(XLEN)/spike_fw_payload.elf
-```
-
-Spike allows trace logging
-
-```bash
-$ install$(XLEN)/bin/spike --log-commits install$(XLEN)/spike_fw_payload.elf 2> trace.log.commits
-```
-
-### Booting from an SD card
-
-First compile the SBI firmware and the Linux image:
-
-```bash
-$ make images
-```
-
-The flash-sdcard Makefile recipe handle the creation of the GPT partition table and the flashing of fw\_payload.bin and uImage at there correct offset. **Be careful to set the correct SDDEVICE.**
-
-```bash
-$ sudo -E make flash-sdcard SDDEVICE=/dev/sdb
-```
-
-## OS X
-
-Similar steps as above but flashing is sligthly different. Get `sgdisk` using `homebrew`.
-
-```
-$ brew install gptfdisk
-$ sudo -E make flash-sdcard SDDEVICE=/dev/sdb
-```
 
 ## OpenOCD - Optional
-If you really need and want to debug on an FPGA/ASIC target the installation instructions are [here](https://github.com/riscv/riscv-openocd).
+If you really need and want to debug on an FPGA/ASIC target the installation instructions are [here](https://github.com/riscv-collab/riscv-openocd).
 
-## Ethernet SSH
-This patch incorporates an overlay to overcome the painful delay in generating public/private key pairs on the target
-(which happens every time because the root filing system is volatile). Do not use these keys on more than one device.
-Likewise it also incorporates a script (rootfs/etc/init.d/S40fixup) which replaces the MAC address with a valid Digilent
-value. This should be replaced by the unique value on the back of the Genesys2 board if more than one device is used on
-the same VLAN. Needless to say both of these values would need regenerating for anything other than development use.
+## Pre-generated SSH keys
+The directory at `rootfs/etc/ssh` adds pre-generated public/private key pairs on the target to overcome the painful delay of generating it at boot-time
+(which happens every time because the root filing system is volatile). Do not use these keys on more than one device, and especially not in productive environments as the private keys are revealed in this directory.
+
+## MAC address
+Each Genesys 2 board stores a MAC address in a special designated storage area, also written on a sticker on its bottom side.
+However, neither the Linux kernel nor u-boot supports reading it from the Genesys 2 board as far as we are aware.
+Even though it is possible, theoretically.
+The [Genesys 2 Reference Manual](https://digilent.com/reference/programmable-logic/genesys-2/reference-manual) says:
+>To this end the Genesys 2 comes with a MAC address pre-programmed in a special one-time programmable region (OTP Region 1) of the Quad-SPI Flash6. This unique identifier can be read with the OTP Read command (0x4B).
+
+Instead, the target currently uses the default MAC address by the [lowRISC Ethernet adapter](https://github.com/lowRISC/ariane-ethernet) which is `23:01:00:89:07:02`.
+If you plan to run multiple Genesys 2 boards on the same network, assign unique MAC addresses. For example, use an init script in the rootfs folder like `ip link set dev eth0 address 00:18:3E:...`.
+This ensures each board has a different MAC address and avoids collisions.
+Note that the iproute2 package (which contains the `ip` binary) from buildroot is disabled by default.
+Our defconfig in **./configs/** enables it, however.
+Otherwise, you might want to use the deprecated `ifconfig` command which is enabled by default in buildroot and required anyways by udhcpc which we use as the DHCP client.
 
 # Docker Container
 
-There is a pretty basic Docker container you can use to get a stable build environment to build the image.
+There is a Dockerfile to build the target image.
+The following command builds the `sdcard.img` and puts it into the `build/` directory.
 
-```
-$ cd container
-$ sudo docker build -t ghcr.io/pulp-platform/ariane-sdk -f Dockerfile .
-```
-
-And build the image:
-```
-$ cd ..
-$ sudo docker run -it -v `pwd`:/repo -w /repo -u $(id -u ${USER}):$(id -g ${USER}) ghcr.io/pulp-platform/ariane-sdk
+```console
+$ sudo docker buildx build -t cva6-sdk-build --output=build .
 ```
