@@ -1,0 +1,568 @@
+From 72a929b48cb2f77d71bf42ccfc58b977339a3e93 Mon Sep 17 00:00:00 2001
+From: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
+Date: Tue, 16 Nov 2021 23:47:15 +0100
+Subject: [PATCH] cva6: Add Genesys 2 support
+
+based on https://github.com/openhwgroup/u-boot/tree/920075ecfa679976fde9beaa718036afe3e69d52
+
+Signed-off-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
+---
+ arch/riscv/Kconfig                            |   4 +
+ arch/riscv/dts/Makefile                       |   1 +
+ arch/riscv/dts/cv32a6_genesysII.dts           | 145 ++++++++++++++++++
+ arch/riscv/dts/cv64a6_genesysII.dts           | 145 ++++++++++++++++++
+ board/openhwgroup/cva6_genesysII/Kconfig      |  30 ++++
+ board/openhwgroup/cva6_genesysII/Makefile     |   1 +
+ board/openhwgroup/cva6_genesysII/cva6.c       |   9 ++
+ .../openhwgroup_cv32a6_genesysII_defconfig    |  33 ++++
+ .../openhwgroup_cv64a6_genesysII_defconfig    |  31 ++++
+ ...openhwgroup_cv64a6_genesysII_spl_defconfig |  44 ++++++
+ include/configs/openhwgroup_cva6_genesysII.h  |   8 +
+ 11 files changed, 451 insertions(+)
+ create mode 100644 arch/riscv/dts/cv32a6_genesysII.dts
+ create mode 100644 arch/riscv/dts/cv64a6_genesysII.dts
+ create mode 100644 board/openhwgroup/cva6_genesysII/Kconfig
+ create mode 100644 board/openhwgroup/cva6_genesysII/Makefile
+ create mode 100644 board/openhwgroup/cva6_genesysII/cva6.c
+ create mode 100644 configs/openhwgroup_cv32a6_genesysII_defconfig
+ create mode 100644 configs/openhwgroup_cv64a6_genesysII_defconfig
+ create mode 100644 configs/openhwgroup_cv64a6_genesysII_spl_defconfig
+ create mode 100644 include/configs/openhwgroup_cva6_genesysII.h
+
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index b24623590f..8267a2230d 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -40,6 +40,9 @@ config TARGET_SIFIVE_UNMATCHED
+ 	bool "Support SiFive Unmatched Board"
+ 	select SYS_CACHE_SHIFT_6
+ 
++config TARGET_OPENHWGROUP_CVA6_GENESYSII
++	bool "Target cva6 architecture on genesysII board"
++
+ config TARGET_SIPEED_MAIX
+ 	bool "Support Sipeed Maix Board"
+ 	select SYS_CACHE_SHIFT_6
+@@ -107,6 +110,7 @@ source "board/spacemit/bananapi-f3/Kconfig"
+ source "board/starfive/visionfive2/Kconfig"
+ source "board/thead/th1520_lpi4a/Kconfig"
+ source "board/xilinx/mbv/Kconfig"
++source "board/openhwgroup/cva6_genesysII/Kconfig"
+ 
+ # platform-specific options below
+ source "arch/riscv/cpu/andes/Kconfig"
+diff --git a/arch/riscv/dts/Makefile b/arch/riscv/dts/Makefile
+index cf1872f3fd..2919847832 100644
+--- a/arch/riscv/dts/Makefile
++++ b/arch/riscv/dts/Makefile
+@@ -15,6 +15,7 @@ dtb-$(CONFIG_TARGET_TH1520_LPI4A) += th1520-lichee-pi-4a.dtb
+ dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv32.dtb
+ dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv64.dtb
+ dtb-$(CONFIG_TARGET_ASPEED_AST2700_IBEX) += ast2700-ibex.dtb
++dtb-$(CONFIG_TARGET_OPENHWGROUP_CVA6_GENESYSII) += $(addsuffix .dtb, $(CONFIG_DEFAULT_DEVICE_TREE:"%"=%))
+ 
+ include $(srctree)/scripts/Makefile.dts
+ 
+diff --git a/arch/riscv/dts/cv32a6_genesysII.dts b/arch/riscv/dts/cv32a6_genesysII.dts
+new file mode 100644
+index 0000000000..41640be51f
+--- /dev/null
++++ b/arch/riscv/dts/cv32a6_genesysII.dts
+@@ -0,0 +1,145 @@
++/dts-v1/;
++
++/ {
++  #address-cells = <2>;
++  #size-cells = <2>;
++  compatible = "eth,ariane-bare-dev";
++  model = "eth,ariane-bare";
++  chosen {
++    stdout-path = "/soc/uart@10000000:115200";
++    //tick-timer =  "/cpus/cpu@0";
++  };
++  cpus {
++    #address-cells = <1>;
++    #size-cells = <0>;
++    timebase-frequency = <25000000>; // 25 MHz
++    CPU0: cpu@0 {
++      clock-frequency = <50000000>; // 50 MHz
++      device_type = "cpu";
++      reg = <0>;
++      status = "okay";
++      compatible = "eth, ariane", "riscv";
++      riscv,isa = "rv32ima";
++      mmu-type = "riscv,sv32";
++      tlb-split;
++      // HLIC - hart local interrupt controller
++      CPU0_intc: interrupt-controller {
++        #interrupt-cells = <1>;
++        interrupt-controller;
++        compatible = "riscv,cpu-intc";
++      };
++    };
++  };
++  memory@80000000 {
++    device_type = "memory";
++    reg = <0x0 0x80000000 0x0 0x40000000>;
++  };
++  leds {
++    compatible = "gpio-leds";
++    heartbeat-led {
++      gpios = <&xlnx_gpio 1 0>;
++      linux,default-trigger = "heartbeat";
++      retain-state-suspended;
++    };
++  };
++  L26: soc {
++    #address-cells = <2>;
++    #size-cells = <2>;
++    compatible = "eth,ariane-bare-soc", "simple-bus";
++    ranges;
++    clint@2000000 {
++      compatible = "riscv,clint0";
++      interrupts-extended = <&CPU0_intc 3 &CPU0_intc 7>;
++      reg = <0x0 0x2000000 0x0 0xc0000>;
++      reg-names = "control";
++    };
++    PLIC0: interrupt-controller@c000000 {
++      #address-cells = <0>;
++      #interrupt-cells = <1>;
++      compatible = "riscv,plic0";
++      interrupt-controller;
++      interrupts-extended = <&CPU0_intc 11 &CPU0_intc 9>;
++      reg = <0x0 0xc000000 0x0 0x4000000>;
++      riscv,max-priority = <7>;
++      riscv,ndev = <30>;
++    };
++//  debug-controller@0 {
++//    compatible = "riscv,debug-013";
++//    interrupts-extended = <&CPU0_intc 65535>;
++//    reg = <0x0 0x0 0x0 0x1000>;
++//    reg-names = "control";
++//  };
++    uart@10000000 {
++      compatible = "ns16750", "ns16550";
++      reg = <0x0 0x10000000 0x0 0x1000>;
++      clock-frequency = <50000000>;
++      current-speed = <115200>;
++      interrupt-parent = <&PLIC0>;
++      interrupts = <1>;
++      reg-shift = <2>; // regs are spaced on 32 bit boundary
++      reg-io-width = <4>; // only 32-bit access are supported
++    };
++    timer@18000000 {
++      compatible = "pulp,apb_timer";
++      interrupts = <0x00000004 0x00000005 0x00000006 0x00000007>;
++      reg = <0x00000000 0x18000000 0x00000000 0x00001000>;
++      interrupt-parent = <&PLIC0>;
++      reg-names = "control";
++    };
++    xps-spi@20000000 {
++      compatible = "xlnx,xps-spi-2.00.b", "xlnx,xps-spi-2.00.a";
++      #address-cells = <1>;
++      #size-cells = <0>;
++      interrupt-parent = <&PLIC0>;
++      interrupts = < 2 2 >;
++      reg = < 0x0 0x20000000 0x0 0x1000 >;
++      fifo-size = <256>;
++      xlnx,family = "kintex7";
++      xlnx,fifo-exist = <0x1>;
++      xlnx,num-ss-bits = <0x1>;
++      xlnx,num-transfer-bits = <0x8>;
++      xlnx,sck-ratio = <0x4>;
++
++      mmc@0 {
++        compatible = "mmc-spi-slot";
++        reg = <0>;
++        spi-max-frequency = <12500000>;
++        voltage-ranges = <3300 3300>;
++        disable-wp;
++      };
++
++      // mmc-slot@0 {
++      //   compatible = "fsl,mpc8323rdb-mmc-slot", "mmc-spi-slot";
++      //   reg = <0>;  //Chip select 0
++      //   spi-max-frequency = <12500000>;
++      //   voltage-ranges = <3300 3300>;
++      //   //interrupts = < 2 2 >;
++      //   //interrupt-parent = <&PLIC0>;
++      // };
++    };
++    eth: lowrisc-eth@30000000 {
++      compatible = "lowrisc-eth";
++      device_type = "network";
++      interrupt-parent = <&PLIC0>;
++      interrupts = <3 0>;
++      local-mac-address = [00 18 3e 02 e3 7f]; // This needs to change if more than one GenesysII on a VLAN
++      reg = <0x0 0x30000000 0x0 0x8000>;
++    };
++    xlnx_gpio: gpio@40000000 {
++      #gpio-cells = <2>;
++      compatible = "xlnx,xps-gpio-1.00.a";
++      gpio-controller ;
++      reg = <0x0 0x40000000 0x0 0x10000 >;
++      xlnx,all-inputs = <0x0>;
++      xlnx,all-inputs-2 = <0x0>;
++      xlnx,dout-default = <0x0>;
++      xlnx,dout-default-2 = <0x0>;
++      xlnx,gpio-width = <0x8>;
++      xlnx,gpio2-width = <0x8>;
++      xlnx,interrupt-present = <0x0>;
++      xlnx,is-dual = <0x1>;
++      xlnx,tri-default = <0xffffffff>;
++      xlnx,tri-default-2 = <0xffffffff>;
++    };
++  };
++};
+diff --git a/arch/riscv/dts/cv64a6_genesysII.dts b/arch/riscv/dts/cv64a6_genesysII.dts
+new file mode 100644
+index 0000000000..b699c7bbb0
+--- /dev/null
++++ b/arch/riscv/dts/cv64a6_genesysII.dts
+@@ -0,0 +1,145 @@
++/dts-v1/;
++
++/ {
++  #address-cells = <2>;
++  #size-cells = <2>;
++  compatible = "eth,ariane-bare-dev";
++  model = "eth,ariane-bare";
++  chosen {
++    stdout-path = "/soc/uart@10000000:115200";
++    //tick-timer =  "/cpus/cpu@0";
++  };
++  cpus {
++    #address-cells = <1>;
++    #size-cells = <0>;
++    timebase-frequency = <25000000>; // 25 MHz
++    CPU0: cpu@0 {
++      clock-frequency = <50000000>; // 50 MHz
++      device_type = "cpu";
++      reg = <0>;
++      status = "okay";
++      compatible = "eth, ariane", "riscv";
++      riscv,isa = "rv64imafdc";
++      mmu-type = "riscv,sv39";
++      tlb-split;
++      // HLIC - hart local interrupt controller
++      CPU0_intc: interrupt-controller {
++        #interrupt-cells = <1>;
++        interrupt-controller;
++        compatible = "riscv,cpu-intc";
++      };
++    };
++  };
++  memory@80000000 {
++    device_type = "memory";
++    reg = <0x0 0x80000000 0x0 0x40000000>;
++  };
++  leds {
++    compatible = "gpio-leds";
++    heartbeat-led {
++      gpios = <&xlnx_gpio 1 0>;
++      linux,default-trigger = "heartbeat";
++      retain-state-suspended;
++    };
++  };
++  L26: soc {
++    #address-cells = <2>;
++    #size-cells = <2>;
++    compatible = "eth,ariane-bare-soc", "simple-bus";
++    ranges;
++    clint@2000000 {
++      compatible = "riscv,clint0";
++      interrupts-extended = <&CPU0_intc 3 &CPU0_intc 7>;
++      reg = <0x0 0x2000000 0x0 0xc0000>;
++      reg-names = "control";
++    };
++    PLIC0: interrupt-controller@c000000 {
++      #address-cells = <0>;
++      #interrupt-cells = <1>;
++      compatible = "riscv,plic0";
++      interrupt-controller;
++      interrupts-extended = <&CPU0_intc 11 &CPU0_intc 9>;
++      reg = <0x0 0xc000000 0x0 0x4000000>;
++      riscv,max-priority = <7>;
++      riscv,ndev = <30>;
++    };
++//  debug-controller@0 {
++//    compatible = "riscv,debug-013";
++//    interrupts-extended = <&CPU0_intc 65535>;
++//    reg = <0x0 0x0 0x0 0x1000>;
++//    reg-names = "control";
++//  };
++    uart@10000000 {
++      compatible = "ns16750", "ns16550";
++      reg = <0x0 0x10000000 0x0 0x1000>;
++      clock-frequency = <50000000>;
++      current-speed = <115200>;
++      interrupt-parent = <&PLIC0>;
++      interrupts = <1>;
++      reg-shift = <2>; // regs are spaced on 32 bit boundary
++      reg-io-width = <4>; // only 32-bit access are supported
++    };
++    timer@18000000 {
++      compatible = "pulp,apb_timer";
++      interrupts = <0x00000004 0x00000005 0x00000006 0x00000007>;
++      reg = <0x00000000 0x18000000 0x00000000 0x00001000>;
++      interrupt-parent = <&PLIC0>;
++      reg-names = "control";
++    };
++    xps-spi@20000000 {
++      compatible = "xlnx,xps-spi-2.00.b", "xlnx,xps-spi-2.00.a";
++      #address-cells = <1>;
++      #size-cells = <0>;
++      interrupt-parent = <&PLIC0>;
++      interrupts = < 2 2 >;
++      reg = < 0x0 0x20000000 0x0 0x1000 >;
++      fifo-size = <256>;
++      xlnx,family = "kintex7";
++      xlnx,fifo-exist = <0x1>;
++      xlnx,num-ss-bits = <0x1>;
++      xlnx,num-transfer-bits = <0x8>;
++      xlnx,sck-ratio = <0x4>;
++
++      mmc@0 {
++        compatible = "mmc-spi-slot";
++        reg = <0>;
++        spi-max-frequency = <12500000>;
++        voltage-ranges = <3300 3300>;
++        disable-wp;
++      };
++
++      // mmc-slot@0 {
++      //   compatible = "fsl,mpc8323rdb-mmc-slot", "mmc-spi-slot";
++      //   reg = <0>;  //Chip select 0
++      //   spi-max-frequency = <12500000>;
++      //   voltage-ranges = <3300 3300>;
++      //   //interrupts = < 2 2 >;
++      //   //interrupt-parent = <&PLIC0>;
++      // };
++    };
++    eth: lowrisc-eth@30000000 {
++      compatible = "lowrisc-eth";
++      device_type = "network";
++      interrupt-parent = <&PLIC0>;
++      interrupts = <3 0>;
++      local-mac-address = [00 18 3e 02 e3 7f]; // This needs to change if more than one GenesysII on a VLAN
++      reg = <0x0 0x30000000 0x0 0x8000>;
++    };
++    xlnx_gpio: gpio@40000000 {
++      #gpio-cells = <2>;
++      compatible = "xlnx,xps-gpio-1.00.a";
++      gpio-controller ;
++      reg = <0x0 0x40000000 0x0 0x10000 >;
++      xlnx,all-inputs = <0x0>;
++      xlnx,all-inputs-2 = <0x0>;
++      xlnx,dout-default = <0x0>;
++      xlnx,dout-default-2 = <0x0>;
++      xlnx,gpio-width = <0x8>;
++      xlnx,gpio2-width = <0x8>;
++      xlnx,interrupt-present = <0x0>;
++      xlnx,is-dual = <0x1>;
++      xlnx,tri-default = <0xffffffff>;
++      xlnx,tri-default-2 = <0xffffffff>;
++    };
++  };
++};
+diff --git a/board/openhwgroup/cva6_genesysII/Kconfig b/board/openhwgroup/cva6_genesysII/Kconfig
+new file mode 100644
+index 0000000000..011e3aa29f
+--- /dev/null
++++ b/board/openhwgroup/cva6_genesysII/Kconfig
+@@ -0,0 +1,30 @@
++if TARGET_OPENHWGROUP_CVA6_GENESYSII
++
++config SYS_BOARD
++	default "cva6_genesysII"
++
++config SYS_VENDOR
++	default "openhwgroup"
++
++config SYS_CPU
++	default "generic"
++
++config SYS_CONFIG_NAME
++	default "openhwgroup_cva6_genesysII"
++
++config TEXT_BASE
++	hex
++	default 0x80200000 if SPL
++	default 0x80000000 if !RISCV_SMODE
++	default 0x80200000 if RISCV_SMODE && ARCH_RV64I
++	default 0x80400000 if RISCV_SMODE && ARCH_RV32I
++
++config SPL_TEXT_BASE
++	hex
++	default 0x08000000
++
++config BOARD_SPECIFIC_OPTIONS # dummy
++    def_bool y
++    select GENERIC_RISCV
++
++endif
+diff --git a/board/openhwgroup/cva6_genesysII/Makefile b/board/openhwgroup/cva6_genesysII/Makefile
+new file mode 100644
+index 0000000000..b5d4830627
+--- /dev/null
++++ b/board/openhwgroup/cva6_genesysII/Makefile
+@@ -0,0 +1 @@
++obj-y	+= cva6.o
+diff --git a/board/openhwgroup/cva6_genesysII/cva6.c b/board/openhwgroup/cva6_genesysII/cva6.c
+new file mode 100644
+index 0000000000..f2c558dce7
+--- /dev/null
++++ b/board/openhwgroup/cva6_genesysII/cva6.c
+@@ -0,0 +1,9 @@
++#include <init.h>
++
++int board_init(void) {
++  return 0;
++}
++
++int ft_board_setup(void *fdt, struct bd_info *bd) {
++  return 0;
++}
+diff --git a/configs/openhwgroup_cv32a6_genesysII_defconfig b/configs/openhwgroup_cv32a6_genesysII_defconfig
+new file mode 100644
+index 0000000000..1c877731c2
+--- /dev/null
++++ b/configs/openhwgroup_cv32a6_genesysII_defconfig
+@@ -0,0 +1,33 @@
++CONFIG_RISCV=y
++CONFIG_TEXT_BASE=0x80400000
++CONFIG_SYS_MALLOC_LEN=0x00800000
++CONFIG_NR_DRAM_BANKS=1
++CONFIG_HAS_CUSTOM_SYS_INIT_SP_ADDR=y
++CONFIG_CUSTOM_SYS_INIT_SP_ADDR=0x80400000
++CONFIG_DEFAULT_DEVICE_TREE="cv32a6_genesysII"
++CONFIG_SYS_BOOTM_LEN=0x04000000
++CONFIG_SYS_LOAD_ADDR=0x90000000
++CONFIG_TARGET_OPENHWGROUP_CVA6_GENESYSII=y
++CONFIG_RISCV_SMODE=y
++# CONFIG_RISCV_ISA_C is not set
++# CONFIG_RISCV_ISA_F is not set
++CONFIG_FIT=y
++# CONFIG_LEGACY_IMAGE_FORMAT is not set
++CONFIG_BOOTDELAY=5
++CONFIG_OF_BOARD_SETUP=y
++CONFIG_USE_BOOTCOMMAND=y
++CONFIG_BOOTCOMMAND="mmc info; fatload mmc 0:2; bootm"
++CONFIG_DISPLAY_CPUINFO=y
++CONFIG_CMD_GPT=y
++CONFIG_CMD_MMC=y
++CONFIG_CMD_PART=y
++CONFIG_CMD_FAT=y
++CONFIG_USE_BOOTFILE=y
++CONFIG_BOOTFILE="fitImage.itb"
++CONFIG_MMC=y
++# CONFIG_MMC_WRITE is not set
++CONFIG_MMC_SPI=y
++CONFIG_SYS_NS16550=y
++CONFIG_SPI=y
++CONFIG_XILINX_SPI=y
++# CONFIG_RANDOM_UUID is not set
+diff --git a/configs/openhwgroup_cv64a6_genesysII_defconfig b/configs/openhwgroup_cv64a6_genesysII_defconfig
+new file mode 100644
+index 0000000000..55c83bf98b
+--- /dev/null
++++ b/configs/openhwgroup_cv64a6_genesysII_defconfig
+@@ -0,0 +1,31 @@
++CONFIG_RISCV=y
++CONFIG_SYS_MALLOC_LEN=0x00800000
++CONFIG_NR_DRAM_BANKS=1
++CONFIG_HAS_CUSTOM_SYS_INIT_SP_ADDR=y
++CONFIG_CUSTOM_SYS_INIT_SP_ADDR=0x80200000
++CONFIG_DEFAULT_DEVICE_TREE="cv64a6_genesysII"
++CONFIG_SYS_BOOTM_LEN=0x04000000
++CONFIG_SYS_LOAD_ADDR=0x90000000
++CONFIG_TARGET_OPENHWGROUP_CVA6_GENESYSII=y
++CONFIG_ARCH_RV64I=y
++CONFIG_RISCV_SMODE=y
++CONFIG_FIT=y
++# CONFIG_LEGACY_IMAGE_FORMAT is not set
++CONFIG_BOOTDELAY=5
++CONFIG_OF_BOARD_SETUP=y
++CONFIG_USE_BOOTCOMMAND=y
++CONFIG_BOOTCOMMAND="mmc info; fatload mmc 0:2; bootm"
++CONFIG_DISPLAY_CPUINFO=y
++CONFIG_CMD_GPT=y
++CONFIG_CMD_MMC=y
++CONFIG_CMD_PART=y
++CONFIG_CMD_FAT=y
++CONFIG_USE_BOOTFILE=y
++CONFIG_BOOTFILE="fitImage.itb"
++CONFIG_MMC=y
++# CONFIG_MMC_WRITE is not set
++CONFIG_MMC_SPI=y
++CONFIG_SYS_NS16550=y
++CONFIG_SPI=y
++CONFIG_XILINX_SPI=y
++# CONFIG_RANDOM_UUID is not set
+diff --git a/configs/openhwgroup_cv64a6_genesysII_spl_defconfig b/configs/openhwgroup_cv64a6_genesysII_spl_defconfig
+new file mode 100644
+index 0000000000..5d54565899
+--- /dev/null
++++ b/configs/openhwgroup_cv64a6_genesysII_spl_defconfig
+@@ -0,0 +1,44 @@
++CONFIG_RISCV=y
++CONFIG_TEXT_BASE=0x80200000
++CONFIG_SYS_LOAD_ADDR=0x80200000
++CONFIG_DEFAULT_DEVICE_TREE="cv64a6_genesysII"
++CONFIG_TARGET_OPENHWGROUP_CVA6_GENESYSII=y
++CONFIG_HAS_CUSTOM_SYS_INIT_SP_ADDR=y
++CONFIG_CUSTOM_SYS_INIT_SP_ADDR=0x80200000
++CONFIG_SYS_BOOTM_LEN=0x04000000
++CONFIG_SYS_MALLOC_LEN=0x00800000
++CONFIG_NR_DRAM_BANKS=1
++CONFIG_ARCH_RV64I=y
++CONFIG_RISCV_SMODE=y
++CONFIG_OF_BOARD_SETUP=y
++CONFIG_BOOTDELAY=5
++CONFIG_USE_BOOTCOMMAND=y
++CONFIG_BOOTCOMMAND="mmc info; mmc read 90000000 100000 7800; setenv fdt_high 0xffffffffffffffff; bootm 90000000 - $(fdtcontroladdr)"
++CONFIG_DISPLAY_CPUINFO=y
++CONFIG_SPL_SPI_FLASH_MTD=y
++CONFIG_CMD_GPT=y
++# CONFIG_RANDOM_UUID is not set
++CONFIG_CMD_MMC=y
++CONFIG_CMD_MTD=y
++CONFIG_CMD_PART=y
++CONFIG_OF_EMBED=y
++CONFIG_MMC=y
++# CONFIG_MMC_WRITE is not set
++CONFIG_MMC_SPI=y
++CONFIG_DM_MTD=y
++CONFIG_MTD_SPI_NAND=y
++CONFIG_SPI_FLASH_ATMEL=y
++CONFIG_SPI_FLASH_EON=y
++CONFIG_SPI_FLASH_GIGADEVICE=y
++CONFIG_SPI_FLASH_ISSI=y
++CONFIG_SPI_FLASH_MACRONIX=y
++CONFIG_SPI_FLASH_SPANSION=y
++CONFIG_SPI_FLASH_STMICRO=y
++CONFIG_SPI_FLASH_SST=y
++CONFIG_SPI_FLASH_WINBOND=y
++CONFIG_SPI_FLASH_XMC=y
++# CONFIG_SPI_FLASH_USE_4K_SECTORS is not set
++CONFIG_SPI_FLASH_MTD=y
++CONFIG_SYS_NS16550=y
++CONFIG_SPI=y
++CONFIG_XILINX_SPI=y
+diff --git a/include/configs/openhwgroup_cva6_genesysII.h b/include/configs/openhwgroup_cva6_genesysII.h
+new file mode 100644
+index 0000000000..8449538c15
+--- /dev/null
++++ b/include/configs/openhwgroup_cva6_genesysII.h
+@@ -0,0 +1,8 @@
++#ifndef __CONFIG_H
++#define __CONFIG_H
++
++#include <linux/sizes.h>
++
++#define CFG_SYS_SDRAM_BASE 0x80000000
++
++#endif
+-- 
+2.39.5
+
