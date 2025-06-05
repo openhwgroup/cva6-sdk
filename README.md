@@ -9,12 +9,12 @@ As of now, the SDK has been designed and tested for the **Digilent Genesys 2** F
 
 Below are the packages required to build and flash the Linux image for CVA6 on a Genesys 2 board.
 
-Ubuntu (tested on 24.04):
+Ubuntu 24.04:
 ```console
 $ sudo apt-get install make gcc g++ file git wget cpio unzip rsync bc bzip2 autoconf libssl-dev libgnutls28-dev
 ```
 
-Fedora (tested on 42):
+Fedora 42:
 ```console
 $ sudo dnf install make gcc g++ perl which awk git bc rsync cpio wget patch openssl-devel openssl-devel-engine gnutls-devel
 ```
@@ -35,12 +35,18 @@ To change the location, set the `OUTPUT` variable in the `make` command like `ma
 
 ## Flash to SD card
 
+### Linux
+
 ```console
 $ dd if=install64/sdcard.img of=/dev/sd<device> status=progress oflag=sync bs=4M conv=sparse
 ```
 
-Note that you need to change `<device>` to the actual device letter.
-You can use `lsblk` or `fdisk -l` to figure out the path to your SD card.
+Note that you need to change `<device>` to the actual device letter of your SD card.
+Use the command `lsblk` or `fdisk -l` to find it.
+
+### Windows
+
+The final image file `install64/sdcard.img` can be flashed to an SD card with [Rufus](https://rufus.ie).
 
 ## CVA6 compatibility
 
@@ -53,16 +59,51 @@ Tested with the following CVA6 configs:
 - **./br2-ext-tree/**: Extension tree for buildroot. This directory contains packages which are not part of the official buildroot package list.
 - **./buildroot/**: The mainline buildroot repository without any custom changes. It is a git submodule.
 - **./configs/**: Contains relevant config files.
-- **./linux_patch/**: Contains patches for the Linux kernel which are applied by buildroot before building it. Currently, it only contains the Ethernet driver for the [open-source Ethernet media access controller](https://github.com/lowRISC/ariane-ethernet) by lowRISC. This driver is not included in the Linux mainline. Without it, ethernet will not work with the stock CVA6.
-- **./rootfs/**: The filesystem overlay. Put files here if you want to use them on your RISC-V system.
-- **./Dockerfile**: Dockerfile to build the target image. Explained in further detail below.
+- **./patches/**: Contains patches used by buildroot to apply to software components. It includes the Linux driver for the [open-source Ethernet media access controller](https://github.com/lowRISC/ariane-ethernet) from lowRISC required for ethernet to work under Linux in the CVA6. And patches to add CVA6 support to U-Boot.
+- **./rootfs/**: The filesystem overlay. Put files here if you want to use them on your target system. Contains key files to prevent them having to be generated on each boot. Explained in further detail below.
+- **./Dockerfile**: Dockerfile to build the image. Explained in further detail below.
+- **./fitImage.its.template**: This defines the content of the [Flat Image Tree (FIT)](https://docs.u-boot.org/en/stable/usage/fit/howto.html) used by U-Boot to package the boot components it is meant to read and launch. The FIT image is part of the `sdcard.img`.
 - **./genimage.cfg**: This defines the structure and content of the final image `sdcard.img`.
-- **./fitImage.its.template**: This defines the content of the [Flat Image Tree (FIT)](https://docs.u-boot.org/en/stable/usage/fit/howto.html) used by u-boot to package the boot components it is meant to read and launch. The FIT image is part of `sdcard.img`.
-- **./permission_table.txt**: Used by buildroot to set the permissions of custom files for the target. 
+- **./permission_table.txt**: Used by buildroot to set the permissions of custom files on the target. 
 - **./post_image.sh**: Called by buildroot after all components have been built. It packages them into the final image `sdcard.img`.
 
-We use a custom U-Boot repository that includes required changes.
-Its URL is defined in the `buildroot/buildroot*_defconfig` file under the `BR2_TARGET_UBOOT_CUSTOM_REPO_URL` variable.
+## Structure of final image `sdcard.img`
+
+As defined in the files `genimage.cfg` and `fitImage.its.template`:
+
+```
++------------------------- sdcard.img ------------------------+
+|                                                              |
+|  +------------------+------------------------------------+   |
+|  |  GPT Header &    |                                    |   |
+|  |  Partition       |   ... GPT Partition Entries ...    |   |
+|  |  Table           |                                    |   |
+|  +------------------+------------------------------------+   |
+|                                                              |
+|  +--------------------------------------------------------+  |
+|  |                 Partition 1 (raw)                      |  |
+|  |  Contains:                                             |  |
+|  |   - fw_payload.bin (OpenSBI + U-Boot)                  |  |
+|  +--------------------------------------------------------+  |
+|                                                              |
+|  +--------------------------------------------------------+  |
+|  |           Partition 2 (FAT filesystem)                 |  |
+|  |  Contains:                                             |  |
+|  |   - fitImage.itb (Kernel + DTB + Ramdisk)              |  |
+|  +--------------------------------------------------------+  |
+|                                                              |
++--------------------------------------------------------------+
+```
+
+## Boot procedure
+
+This project follows the common RISC-V boot procedure.
+
+1. [BootROM](https://github.com/openhwgroup/cva6/tree/master/corev_apu/fpga/src/bootrom) (M-Mode). Loads 1st partition (OpenSBI with U-Boot as payload) from SD card into DRAM memory and executes it.
+2. [OpenSBI](https://github.com/riscv-software-src/opensbi) (M-Mode). Stays in memory to provide M-mode services to S-Mode software later. U-Boot was also loaded in the previous step, so OpenSBI directly executes U-Boot.
+3. [U-Boot](https://github.com/u-boot/u-boot) (S-Mode). Loads `fitImage.itb` from 2nd partition from SD card into DRAM memory. It then launches the Linux kernel while providing the addresses to the DTB and Ramdisk from the `fitimage.itb`. U-Boot is only resident in memory during the boot process.
+4. [Linux Kernel](https://github.com/torvalds/linux) (S-Mode). Loads, decompresses and launches /sbin/init from Ramdisk.
+5. User space applications (U-Mode)
 
 ## Using toolchain outside of the SDK
 
@@ -74,21 +115,16 @@ If you really need and want to debug on an FPGA/ASIC target the installation ins
 
 ## Pre-generated SSH keys
 The directory at `rootfs/etc/ssh` adds pre-generated public/private key pairs on the target to overcome the painful delay of generating it at boot-time
-(which happens every time because the root filing system is volatile). Do not use these keys on more than one device, and especially not in productive environments as the private keys are revealed in this directory.
+(which happens every time because the root file system is volatile). Do not use these keys on more than one device, and especially not in productive environments as the private keys are revealed in this directory.
 
 ## MAC address
 Each Genesys 2 board stores a MAC address in a special designated storage area, also written on a sticker on its bottom side.
-However, neither the Linux kernel nor u-boot supports reading it from the Genesys 2 board as far as we are aware.
-Even though it is possible, theoretically.
-The [Genesys 2 Reference Manual](https://digilent.com/reference/programmable-logic/genesys-2/reference-manual) says:
->To this end the Genesys 2 comes with a MAC address pre-programmed in a special one-time programmable region (OTP Region 1) of the Quad-SPI Flash6. This unique identifier can be read with the OTP Read command (0x4B).
+It would be nice to U-Boot read this MAC address, and apply it to the interface.
+However, this requires board-specific code which U-Boot does not provide.
 
-Instead, the target currently uses the default MAC address by the [lowRISC Ethernet adapter](https://github.com/lowRISC/ariane-ethernet) which is `23:01:00:89:07:02`.
+Instead, the target currently uses the default MAC address of the [lowRISC Ethernet adapter](https://github.com/lowRISC/ariane-ethernet) which is `23:01:00:89:07:02`.
 If you plan to run multiple Genesys 2 boards on the same network, assign unique MAC addresses. For example, use an init script in the rootfs folder like `ip link set dev eth0 address 00:18:3E:...`.
 This ensures each board has a different MAC address and avoids collisions.
-Note that the iproute2 package (which contains the `ip` binary) from buildroot is disabled by default.
-Our defconfig in **./configs/** enables it, however.
-Otherwise, you might want to use the deprecated `ifconfig` command which is enabled by default in buildroot and required anyways by udhcpc which we use as the DHCP client.
 
 # Docker Container
 
