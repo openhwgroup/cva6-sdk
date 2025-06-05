@@ -42,6 +42,12 @@ $ dd if=install64/sdcard.img of=/dev/sd<device> status=progress oflag=sync bs=4M
 Note that you need to change `<device>` to the actual device letter.
 You can use `lsblk` or `fdisk -l` to figure out the path to your SD card.
 
+## CVA6 compatibility
+
+Tested with the following CVA6 configs:
+- **32-bit**: `cv32a6_ima_sv32_fpga`
+- **64-bit**: `cv64a6_imafdc_sv39`
+
 ## Repository content
 
 - **./br2-ext-tree/**: Extension tree for buildroot. This directory contains packages which are not part of the official buildroot package list.

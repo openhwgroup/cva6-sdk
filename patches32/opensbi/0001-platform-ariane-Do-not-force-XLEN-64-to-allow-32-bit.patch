@@ -1,0 +1,25 @@
+From bade4c570ce5370ef7088b5eee5edeed91392f4c Mon Sep 17 00:00:00 2001
+From: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
+Date: Thu, 5 Jun 2025 10:43:10 +0200
+Subject: [PATCH] platform: ariane: Do not force XLEN=64 to allow 32-bit builds
+
+---
+ platform/fpga/ariane/objects.mk | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/platform/fpga/ariane/objects.mk b/platform/fpga/ariane/objects.mk
+index d1177f4..84612db 100644
+--- a/platform/fpga/ariane/objects.mk
++++ b/platform/fpga/ariane/objects.mk
+@@ -14,8 +14,6 @@ platform-ldflags-y =
+ # Object to build
+ platform-objs-y += platform.o
+ 
+-PLATFORM_RISCV_XLEN = 64
+-
+ # Blobs to build
+ FW_JUMP=n
+ 
+-- 
+2.39.5
+
