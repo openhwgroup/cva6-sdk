@@ -3,11 +3,9 @@ OUTPUT   ?= $(PWD)/install$(XLEN)
 
 BUILDROOT_EXTERNAL_TREE_PATH := ../br2-ext-tree
 
-# configs
 buildroot_defconfig = configs/buildroot$(XLEN)_defconfig
-linux_defconfig = configs/linux$(XLEN)_defconfig
 
-all: $(buildroot_defconfig) $(linux_defconfig)
+all:
 	mkdir -p $(OUTPUT)
 	$(MAKE) -C buildroot BR2_EXTERNAL="$(BUILDROOT_EXTERNAL_TREE_PATH)" BR2_DEFCONFIG=../$(buildroot_defconfig) defconfig
 	$(MAKE) -C buildroot BINARIES_DIR=$(OUTPUT)
