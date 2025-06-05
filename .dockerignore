@@ -1,5 +1,5 @@
 /install*/
-image.its
+fitImage.its
 buildroot/output
 .git
 .github

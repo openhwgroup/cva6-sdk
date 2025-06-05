@@ -16,7 +16,7 @@ clean:
 		$(OUTPUT)/Image.gz $(OUTPUT)/rootfs.cpio $(OUTPUT)/rootfs.cpio.gz \
 		$(OUTPUT)/sdcard.img \
 		$(OUTPUT)/u-boot.bin $(OUTPUT)/u-boot.dtb \
-		image.its
+		fitImage.its
 	$(MAKE) -C buildroot clean
 
 .PHONY: all clean

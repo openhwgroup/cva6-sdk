@@ -57,7 +57,7 @@ Tested with the following CVA6 configs:
 - **./rootfs/**: The filesystem overlay. Put files here if you want to use them on your RISC-V system.
 - **./Dockerfile**: Dockerfile to build the target image. Explained in further detail below.
 - **./genimage.cfg**: This defines the structure and content of the final image `sdcard.img`.
-- **./image.its.template**: This defines the content of the [Flat Image Tree (FIT)](https://docs.u-boot.org/en/stable/usage/fit/howto.html) used by u-boot to package the boot components it is meant to read and launch. The FIT image is part of `sdcard.img`.
+- **./fitImage.its.template**: This defines the content of the [Flat Image Tree (FIT)](https://docs.u-boot.org/en/stable/usage/fit/howto.html) used by u-boot to package the boot components it is meant to read and launch. The FIT image is part of `sdcard.img`.
 - **./permission_table.txt**: Used by buildroot to set the permissions of custom files for the target. 
 - **./post_image.sh**: Called by buildroot after all components have been built. It packages them into the final image `sdcard.img`.
 

@@ -4,8 +4,8 @@ set -e
 
 # Paths are relative to buildroot directory
 
-ITS_TEMPLATE_FILE=../image.its.template
-ITS_FILE=../image.its
+ITS_TEMPLATE_FILE=../fitImage.its.template
+ITS_FILE=../fitImage.its
 FIT_BINARY_NAME=$BINARIES_DIR/fitImage.itb
 
 GENIMAGE_CFG=../genimage.cfg

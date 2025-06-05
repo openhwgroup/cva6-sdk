@@ -7,7 +7,7 @@ COPY configs /src/configs
 COPY patches /src/patches
 COPY patches32 /src/patches32
 COPY rootfs /src/rootfs
-COPY genimage.cfg image.its.template Makefile permission_table.txt post_image.sh /src/
+COPY genimage.cfg fitImage.its.template Makefile permission_table.txt post_image.sh /src/
 WORKDIR /src
 RUN make
 
