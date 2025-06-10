@@ -1,12 +1,11 @@
-From 86a81d0ddc016dacd0fc70a1c9bb4097c5bcbfb9 Mon Sep 17 00:00:00 2001
+From fc1277c36534c541f4bb83ea6016386ae6423838 Mon Sep 17 00:00:00 2001
 From: Jonathan Richard Robert Kimmitt <jrrk2@cl.cam.ac.uk>
-Date: Wed, 9 Apr 2025 16:35:06 +0200
+Date: Wed, 18 Feb 2026 10:35:10 +0100
 Subject: [PATCH] Incorporate lowrisc drivers for latest kernel release
- candidate
 
 [Andreas Korb: Upgrade to modern kernels and fix bugs
   - Remove unneeded MMC driver
-  - Adapt from Linux kernel 5.1 to 6.14
+  - Adapt from Linux kernel 5.1 to 6.19
   - Fix compilation warnings
   - Refactoring
   - Fix re-enabling ethernet interface
@@ -27,19 +26,19 @@ Signed-off-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
  create mode 100644 drivers/net/ethernet/lowrisc/lowrisc_100MHz.h
 
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index aead145dd..00cf96f2b 100644
+index 4a1b368ca..c40d6078b 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
-@@ -130,6 +130,7 @@ source "drivers/net/ethernet/mscc/Kconfig"
- source "drivers/net/ethernet/microsoft/Kconfig"
+@@ -131,6 +131,7 @@ source "drivers/net/ethernet/microsoft/Kconfig"
  source "drivers/net/ethernet/moxa/Kconfig"
+ source "drivers/net/ethernet/mucse/Kconfig"
  source "drivers/net/ethernet/myricom/Kconfig"
 +source "drivers/net/ethernet/lowrisc/Kconfig"
  
  config FEALNX
  	tristate "Myson MTD-8xx PCI Ethernet support"
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index 998dd628b..6813a2f25 100644
+index 2e18df8ca..dfef7808e 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
 @@ -57,6 +57,7 @@ obj-$(CONFIG_KORINA) += korina.o

@@ -1,4 +1,4 @@
-From 72a929b48cb2f77d71bf42ccfc58b977339a3e93 Mon Sep 17 00:00:00 2001
+From a35b3706bb7a30eb7839fcd9f877c1dc768a789a Mon Sep 17 00:00:00 2001
 From: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
 Date: Tue, 16 Nov 2021 23:47:15 +0100
 Subject: [PATCH] cva6: Add Genesys 2 support
@@ -30,10 +30,10 @@ Signed-off-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
  create mode 100644 include/configs/openhwgroup_cva6_genesysII.h
 
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index b24623590f..8267a2230d 100644
+index 04eb0e6f23c..a68550172ef 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
-@@ -40,6 +40,9 @@ config TARGET_SIFIVE_UNMATCHED
+@@ -43,6 +43,9 @@ config TARGET_SIFIVE_UNMATCHED
  	bool "Support SiFive Unmatched Board"
  	select SYS_CACHE_SHIFT_6
  
@@ -43,7 +43,7 @@ index b24623590f..8267a2230d 100644
  config TARGET_SIPEED_MAIX
  	bool "Support Sipeed Maix Board"
  	select SYS_CACHE_SHIFT_6
-@@ -107,6 +110,7 @@ source "board/spacemit/bananapi-f3/Kconfig"
+@@ -119,6 +122,7 @@ source "board/spacemit/bananapi-f3/Kconfig"
  source "board/starfive/visionfive2/Kconfig"
  source "board/thead/th1520_lpi4a/Kconfig"
  source "board/xilinx/mbv/Kconfig"
@@ -52,12 +52,12 @@ index b24623590f..8267a2230d 100644
  # platform-specific options below
  source "arch/riscv/cpu/andes/Kconfig"
 diff --git a/arch/riscv/dts/Makefile b/arch/riscv/dts/Makefile
-index cf1872f3fd..2919847832 100644
+index a637727b76b..c7ee37731a9 100644
 --- a/arch/riscv/dts/Makefile
 +++ b/arch/riscv/dts/Makefile
-@@ -15,6 +15,7 @@ dtb-$(CONFIG_TARGET_TH1520_LPI4A) += th1520-lichee-pi-4a.dtb
- dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv32.dtb
+@@ -17,6 +17,7 @@ dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv32.dtb
  dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv64.dtb
+ dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-binman.dtb
  dtb-$(CONFIG_TARGET_ASPEED_AST2700_IBEX) += ast2700-ibex.dtb
 +dtb-$(CONFIG_TARGET_OPENHWGROUP_CVA6_GENESYSII) += $(addsuffix .dtb, $(CONFIG_DEFAULT_DEVICE_TREE:"%"=%))
  
@@ -65,7 +65,7 @@ index cf1872f3fd..2919847832 100644
  
 diff --git a/arch/riscv/dts/cv32a6_genesysII.dts b/arch/riscv/dts/cv32a6_genesysII.dts
 new file mode 100644
-index 0000000000..41640be51f
+index 00000000000..41640be51f0
 --- /dev/null
 +++ b/arch/riscv/dts/cv32a6_genesysII.dts
 @@ -0,0 +1,145 @@
@@ -216,7 +216,7 @@ index 0000000000..41640be51f
 +};
 diff --git a/arch/riscv/dts/cv64a6_genesysII.dts b/arch/riscv/dts/cv64a6_genesysII.dts
 new file mode 100644
-index 0000000000..b699c7bbb0
+index 00000000000..b699c7bbb04
 --- /dev/null
 +++ b/arch/riscv/dts/cv64a6_genesysII.dts
 @@ -0,0 +1,145 @@
@@ -367,7 +367,7 @@ index 0000000000..b699c7bbb0
 +};
 diff --git a/board/openhwgroup/cva6_genesysII/Kconfig b/board/openhwgroup/cva6_genesysII/Kconfig
 new file mode 100644
-index 0000000000..011e3aa29f
+index 00000000000..011e3aa29f8
 --- /dev/null
 +++ b/board/openhwgroup/cva6_genesysII/Kconfig
 @@ -0,0 +1,30 @@
@@ -403,14 +403,14 @@ index 0000000000..011e3aa29f
 +endif
 diff --git a/board/openhwgroup/cva6_genesysII/Makefile b/board/openhwgroup/cva6_genesysII/Makefile
 new file mode 100644
-index 0000000000..b5d4830627
+index 00000000000..b5d48306279
 --- /dev/null
 +++ b/board/openhwgroup/cva6_genesysII/Makefile
 @@ -0,0 +1 @@
 +obj-y	+= cva6.o
 diff --git a/board/openhwgroup/cva6_genesysII/cva6.c b/board/openhwgroup/cva6_genesysII/cva6.c
 new file mode 100644
-index 0000000000..f2c558dce7
+index 00000000000..f2c558dce7b
 --- /dev/null
 +++ b/board/openhwgroup/cva6_genesysII/cva6.c
 @@ -0,0 +1,9 @@
@@ -425,7 +425,7 @@ index 0000000000..f2c558dce7
 +}
 diff --git a/configs/openhwgroup_cv32a6_genesysII_defconfig b/configs/openhwgroup_cv32a6_genesysII_defconfig
 new file mode 100644
-index 0000000000..1c877731c2
+index 00000000000..1c877731c22
 --- /dev/null
 +++ b/configs/openhwgroup_cv32a6_genesysII_defconfig
 @@ -0,0 +1,33 @@
@@ -464,7 +464,7 @@ index 0000000000..1c877731c2
 +# CONFIG_RANDOM_UUID is not set
 diff --git a/configs/openhwgroup_cv64a6_genesysII_defconfig b/configs/openhwgroup_cv64a6_genesysII_defconfig
 new file mode 100644
-index 0000000000..55c83bf98b
+index 00000000000..55c83bf98bb
 --- /dev/null
 +++ b/configs/openhwgroup_cv64a6_genesysII_defconfig
 @@ -0,0 +1,31 @@
@@ -501,7 +501,7 @@ index 0000000000..55c83bf98b
 +# CONFIG_RANDOM_UUID is not set
 diff --git a/configs/openhwgroup_cv64a6_genesysII_spl_defconfig b/configs/openhwgroup_cv64a6_genesysII_spl_defconfig
 new file mode 100644
-index 0000000000..5d54565899
+index 00000000000..5d545658994
 --- /dev/null
 +++ b/configs/openhwgroup_cv64a6_genesysII_spl_defconfig
 @@ -0,0 +1,44 @@
@@ -551,7 +551,7 @@ index 0000000000..5d54565899
 +CONFIG_XILINX_SPI=y
 diff --git a/include/configs/openhwgroup_cva6_genesysII.h b/include/configs/openhwgroup_cva6_genesysII.h
 new file mode 100644
-index 0000000000..8449538c15
+index 00000000000..8449538c152
 --- /dev/null
 +++ b/include/configs/openhwgroup_cva6_genesysII.h
 @@ -0,0 +1,8 @@
