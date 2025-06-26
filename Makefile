@@ -1,6 +1,6 @@
 # Makefile for RISC-V toolchain; run 'make help' for usage. set XLEN here to 32 or 64.
 
-XLEN     := 64
+XLEN     ?= 64
 ROOT     := $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 RISCV    := $(PWD)/install$(XLEN)
 DEST     := $(abspath $(RISCV))
@@ -136,17 +136,18 @@ $(RISCV)/spike_fw_payload.elf: $(RISCV)/Image
 FWPAYLOAD_SECTORSTART := 2048
 FWPAYLOAD_SECTORSIZE = $(shell ls -l --block-size=512 $(RISCV)/fw_payload.bin | cut -d " " -f5 )
 FWPAYLOAD_SECTOREND = $(shell echo $(FWPAYLOAD_SECTORSTART)+$(FWPAYLOAD_SECTORSIZE) | bc)
-SDDEVICE_PART1 = $(shell lsblk $(SDDEVICE) -no PATH | head -2 | tail -1)
-SDDEVICE_PART2 = $(shell lsblk $(SDDEVICE) -no PATH | head -3 | tail -1)
 # Always flash uImage at 512M, easier for u-boot boot command
 UIMAGE_SECTORSTART := 512M
 flash-sdcard: format-sd
-	dd if=$(RISCV)/fw_payload.bin of=$(SDDEVICE_PART1) status=progress oflag=sync bs=1M
-	dd if=$(RISCV)/uImage         of=$(SDDEVICE_PART2) status=progress oflag=sync bs=1M
+	dd if=$(RISCV)/fw_payload.bin of=$(SDDEVICE)1 status=progress oflag=sync bs=1M
+	dd if=$(RISCV)/uImage         of=$(SDDEVICE)2 status=progress oflag=sync bs=1M
 
 format-sd: $(SDDEVICE)
 	@test -n "$(SDDEVICE)" || (echo 'SDDEVICE must be set, Ex: make flash-sdcard SDDEVICE=/dev/sdc' && exit 1)
-	sgdisk --clear -g --new=1:$(FWPAYLOAD_SECTORSTART):$(FWPAYLOAD_SECTOREND) --new=2:$(UIMAGE_SECTORSTART):0 --typecode=1:3000 --typecode=2:8300 $(SDDEVICE)
+	sgdisk -Z $(SDDEVICE)
+	sgdisk --new=1:$(FWPAYLOAD_SECTORSTART):$(FWPAYLOAD_SECTOREND) --new=2:$(UIMAGE_SECTORSTART):0 --typecode=1:3000 --typecode=2:8300 $(SDDEVICE)
+	partprobe $(SDDEVICE)
+
 
 # specific recipes
 gcc: $(CC)
