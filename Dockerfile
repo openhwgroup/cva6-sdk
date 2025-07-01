@@ -5,7 +5,6 @@ COPY br2-ext-tree /src/br2-ext-tree
 COPY buildroot /src/buildroot
 COPY configs /src/configs
 COPY patches /src/patches
-COPY patches32 /src/patches32
 COPY rootfs /src/rootfs
 COPY genimage.cfg fitImage.its.template Makefile permission_table.txt post_image.sh /src/
 WORKDIR /src
