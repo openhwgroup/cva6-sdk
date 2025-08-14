@@ -19,4 +19,10 @@ clean:
 		fitImage.its
 	$(MAKE) -C buildroot clean
 
-.PHONY: all clean
+updatedefconfigs:
+	$(MAKE) -C buildroot BR2_EXTERNAL="$(BUILDROOT_EXTERNAL_TREE_PATH)" BR2_DEFCONFIG=../$(buildroot_defconfig) defconfig
+	$(MAKE) -C buildroot BR2_DEFCONFIG=../$(buildroot_defconfig) savedefconfig
+	$(MAKE) -C buildroot linux-configure
+	$(MAKE) -C buildroot linux-update-defconfig
+
+.PHONY: all clean updatedefconfigs
