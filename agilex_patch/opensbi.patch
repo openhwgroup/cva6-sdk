@@ -1,0 +1,323 @@
+diff --git a/include/sbi_utils/serial/uart8250.h b/include/sbi_utils/serial/uart8250.h
+index 6b9b48b..3ef3d4d 100644
+--- a/include/sbi_utils/serial/uart8250.h
++++ b/include/sbi_utils/serial/uart8250.h
+@@ -15,4 +15,7 @@
+ int uart8250_init(unsigned long base, u32 in_freq, u32 baudrate, u32 reg_shift,
+ 		  u32 reg_width);
+ 
++int altera_uart_init(unsigned long base, u32 in_freq, u32 baudrate, u32 reg_shift,
++		  u32 reg_width);
++		  
+ #endif
+diff --git a/lib/utils/serial/uart8250.c b/lib/utils/serial/uart8250.c
+index 1cf6624..830a315 100644
+--- a/lib/utils/serial/uart8250.c
++++ b/lib/utils/serial/uart8250.c
+@@ -84,12 +84,33 @@ static int uart8250_getc(void)
+ 	return -1;
+ }
+ 
++static void altera_uart_putc(char ch)
++{
++	while (((get_reg(UART_THR_OFFSET+7) << 8) + get_reg(UART_THR_OFFSET+6) ) < 8)
++		;
++
++	set_reg(UART_THR_OFFSET, ch);
++}
++
++static int altera_uart_getc(void)
++{
++	if (get_reg(UART_RBR_OFFSET) !=0)
++		return get_reg(UART_RBR_OFFSET);
++	return -1;
++}
++
+ static struct sbi_console_device uart8250_console = {
+ 	.name = "uart8250",
+ 	.console_putc = uart8250_putc,
+ 	.console_getc = uart8250_getc
+ };
+ 
++static struct sbi_console_device altera_uart_console = {
++	.name = "altera_uart",
++	.console_putc = altera_uart_putc,
++	.console_getc = altera_uart_getc
++};
++
+ int uart8250_init(unsigned long base, u32 in_freq, u32 baudrate, u32 reg_shift,
+ 		  u32 reg_width)
+ {
+@@ -132,3 +153,18 @@ int uart8250_init(unsigned long base, u32 in_freq, u32 baudrate, u32 reg_shift,
+ 
+ 	return 0;
+ }
++
++int altera_uart_init(unsigned long base, u32 in_freq, u32 baudrate, u32 reg_shift,
++		  u32 reg_width)
++{
++
++	uart8250_base      = (volatile void *)base;
++	uart8250_reg_shift = reg_shift;
++	uart8250_reg_width = reg_width;
++	uart8250_in_freq   = in_freq;
++	uart8250_baudrate  = baudrate;
++
++	sbi_console_set_device(&altera_uart_console);
++
++	return 0;
++}
+diff --git a/platform/fpga/cva6-altera/config.mk b/platform/fpga/cva6-altera/config.mk
+new file mode 100644
+index 0000000..3556461
+--- /dev/null
++++ b/platform/fpga/cva6-altera/config.mk
+@@ -0,0 +1,36 @@
++#
++# SPDX-License-Identifier: BSD-2-Clause
++#
++# Copyright (C) 2019 FORTH-ICS/CARV
++#		Panagiotis Peristerakis <perister@ics.forth.gr>
++#
++
++#for more infos, check out /platform/template/config.mk
++
++PLATFORM_RISCV_XLEN = 64
++
++# Blobs to build
++FW_TEXT_START=0x80000000
++FW_JUMP=n
++
++ifeq ($(PLATFORM_RISCV_XLEN), 32)
++ # This needs to be 4MB aligned for 32-bit support
++ FW_JUMP_ADDR=0x80400000
++ else
++ # This needs to be 2MB aligned for 64-bit support
++ FW_JUMP_ADDR=0x80200000
++ endif
++FW_JUMP_FDT_ADDR=0x82200000
++
++# Firmware with payload configuration.
++FW_PAYLOAD=y
++
++ifeq ($(PLATFORM_RISCV_XLEN), 32)
++# This needs to be 4MB aligned for 32-bit support
++  FW_PAYLOAD_OFFSET=0x400000
++else
++# This needs to be 2MB aligned for 64-bit support
++  FW_PAYLOAD_OFFSET=0x200000
++endif
++FW_PAYLOAD_FDT_ADDR=0x82200000
++FW_PAYLOAD_ALIGN=0x1000
+diff --git a/platform/fpga/cva6-altera/objects.mk b/platform/fpga/cva6-altera/objects.mk
+new file mode 100644
+index 0000000..33fe0a5
+--- /dev/null
++++ b/platform/fpga/cva6-altera/objects.mk
+@@ -0,0 +1,8 @@
++#
++# SPDX-License-Identifier: BSD-2-Clause
++#
++# Copyright (C) 2019 FORTH-ICS/CARV
++#		Panagiotis Peristerakis <perister@ics.forth.gr>
++#
++
++platform-objs-y += platform.o
+\ No newline at end of file
+diff --git a/platform/fpga/cva6-altera/platform.c b/platform/fpga/cva6-altera/platform.c
+new file mode 100644
+index 0000000..a0d13f2
+--- /dev/null
++++ b/platform/fpga/cva6-altera/platform.c
+@@ -0,0 +1,191 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (C) 2025 PlanV Technologies
++ *				Angela Gonzalez
++ * Adapted from Ariane platform
++ */
++
++#include <sbi/riscv_asm.h>
++#include <sbi/riscv_encoding.h>
++#include <sbi/riscv_io.h>
++#include <sbi/sbi_console.h>
++#include <sbi/sbi_const.h>
++#include <sbi/sbi_hart.h>
++#include <sbi/sbi_platform.h>
++#include <sbi_utils/fdt/fdt_helper.h>
++#include <sbi_utils/fdt/fdt_fixup.h>
++#include <sbi_utils/ipi/aclint_mswi.h>
++#include <sbi_utils/irqchip/plic.h>
++#include <sbi_utils/serial/uart8250.h>
++#include <sbi_utils/timer/aclint_mtimer.h>
++
++#define ARIANE_UART_ADDR			0x10000000
++#define ARIANE_UART_FREQ			50000000
++#define ARIANE_UART_BAUDRATE			115200
++#define ARIANE_UART_REG_SHIFT			0
++#define ARIANE_UART_REG_WIDTH			1
++#define ARIANE_PLIC_ADDR			0xc000000
++#define ARIANE_PLIC_NUM_SOURCES			3
++#define ARIANE_HART_COUNT			1
++#define ARIANE_CLINT_ADDR			0x2000000
++#define ARIANE_ACLINT_MTIMER_FREQ		1000000
++#define ARIANE_ACLINT_MSWI_ADDR			(ARIANE_CLINT_ADDR + \
++						 CLINT_MSWI_OFFSET)
++#define ARIANE_ACLINT_MTIMER_ADDR		(ARIANE_CLINT_ADDR + \
++						 CLINT_MTIMER_OFFSET)
++
++static struct plic_data plic = {
++	.addr = ARIANE_PLIC_ADDR,
++	.num_src = ARIANE_PLIC_NUM_SOURCES,
++};
++
++static struct aclint_mswi_data mswi = {
++	.addr = ARIANE_ACLINT_MSWI_ADDR,
++	.size = ACLINT_MSWI_SIZE,
++	.first_hartid = 0,
++	.hart_count = ARIANE_HART_COUNT,
++};
++
++static struct aclint_mtimer_data mtimer = {
++	.mtime_freq = ARIANE_ACLINT_MTIMER_FREQ,
++	.mtime_addr = ARIANE_ACLINT_MTIMER_ADDR +
++		      ACLINT_DEFAULT_MTIME_OFFSET,
++	.mtime_size = ACLINT_DEFAULT_MTIME_SIZE,
++	.mtimecmp_addr = ARIANE_ACLINT_MTIMER_ADDR +
++			 ACLINT_DEFAULT_MTIMECMP_OFFSET,
++	.mtimecmp_size = ACLINT_DEFAULT_MTIMECMP_SIZE,
++	.first_hartid = 0,
++	.hart_count = ARIANE_HART_COUNT,
++	.has_64bit_mmio = TRUE,
++};
++
++/*
++ * Ariane platform early initialization.
++ */
++static int ariane_early_init(bool cold_boot)
++{
++	/* For now nothing to do. */
++	return 0;
++}
++
++/*
++ * Ariane platform final initialization.
++ */
++static int ariane_final_init(bool cold_boot)
++{
++	void *fdt;
++
++	if (!cold_boot)
++		return 0;
++
++	fdt = fdt_get_address();
++	fdt_fixups(fdt);
++
++	return 0;
++}
++
++/*
++ * Initialize the ariane console.
++ */
++static int ariane_console_init(void)
++{
++	return altera_uart_init(ARIANE_UART_ADDR,
++			     ARIANE_UART_FREQ,
++			     ARIANE_UART_BAUDRATE,
++			     ARIANE_UART_REG_SHIFT,
++			     ARIANE_UART_REG_WIDTH);
++}
++
++static int plic_ariane_warm_irqchip_init(int m_cntx_id, int s_cntx_id)
++{
++	size_t i, ie_words = ARIANE_PLIC_NUM_SOURCES / 32 + 1;
++
++	/* By default, enable all IRQs for M-mode of target HART */
++	if (m_cntx_id > -1) {
++		for (i = 0; i < ie_words; i++)
++			plic_set_ie(&plic, m_cntx_id, i, 1);
++	}
++	/* Enable all IRQs for S-mode of target HART */
++	if (s_cntx_id > -1) {
++		for (i = 0; i < ie_words; i++)
++			plic_set_ie(&plic, s_cntx_id, i, 1);
++	}
++	/* By default, enable M-mode threshold */
++	if (m_cntx_id > -1)
++		plic_set_thresh(&plic, m_cntx_id, 1);
++	/* By default, disable S-mode threshold */
++	if (s_cntx_id > -1)
++		plic_set_thresh(&plic, s_cntx_id, 0);
++
++	return 0;
++}
++
++/*
++ * Initialize the ariane interrupt controller for current HART.
++ */
++static int ariane_irqchip_init(bool cold_boot)
++{
++	u32 hartid = current_hartid();
++	int ret;
++
++	if (cold_boot) {
++		ret = plic_cold_irqchip_init(&plic);
++		if (ret)
++			return ret;
++	}
++	return plic_ariane_warm_irqchip_init(2 * hartid, 2 * hartid + 1);
++}
++
++/*
++ * Initialize IPI for current HART.
++ */
++static int ariane_ipi_init(bool cold_boot)
++{
++	int ret;
++
++	if (cold_boot) {
++		ret = aclint_mswi_cold_init(&mswi);
++		if (ret)
++			return ret;
++	}
++
++	return aclint_mswi_warm_init();
++}
++
++/*
++ * Initialize ariane timer for current HART.
++ */
++static int ariane_timer_init(bool cold_boot)
++{
++	int ret;
++
++	if (cold_boot) {
++		ret = aclint_mtimer_cold_init(&mtimer, NULL);
++		if (ret)
++			return ret;
++	}
++
++	return aclint_mtimer_warm_init();
++}
++
++/*
++ * Platform descriptor.
++ */
++const struct sbi_platform_operations platform_ops = {
++	.early_init = ariane_early_init,
++	.final_init = ariane_final_init,
++	.console_init = ariane_console_init,
++	.irqchip_init = ariane_irqchip_init,
++	.ipi_init = ariane_ipi_init,
++	.timer_init = ariane_timer_init,
++};
++
++const struct sbi_platform platform = {
++	.opensbi_version = OPENSBI_VERSION,
++	.platform_version = SBI_PLATFORM_VERSION(0x0, 0x01),
++	.name = "ARIANE RISC-V",
++	.features = SBI_PLATFORM_DEFAULT_FEATURES,
++	.hart_count = ARIANE_HART_COUNT,
++	.hart_stack_size = SBI_PLATFORM_DEFAULT_HART_STACK_SIZE,
++	.platform_ops_addr = (unsigned long)&platform_ops
++};
