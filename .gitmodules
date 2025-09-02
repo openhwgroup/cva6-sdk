@@ -15,9 +15,10 @@
 [submodule "u-boot"]
 	path = u-boot
 	url = https://github.com/planvtech/u-boot/
+	branch = support_agilex
 [submodule "opensbi"]
 	path = opensbi
-	url = https://github.com/planvtech/opensbi
+	url = https://github.com/riscv/opensbi
 [submodule "ltp"]
 	path = ltp
 	url = https://github.com/linux-test-project/ltp
