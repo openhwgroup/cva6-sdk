@@ -18,4 +18,4 @@
 	branch = support_agilex
 [submodule "opensbi"]
 	path = opensbi
-	url = https://github.com/riscv/opensbi
+	url = https://github.com/riscv/opensbi.git
