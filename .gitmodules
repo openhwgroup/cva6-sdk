@@ -19,6 +19,3 @@
 [submodule "opensbi"]
 	path = opensbi
 	url = https://github.com/riscv/opensbi
-[submodule "ltp"]
-	path = ltp
-	url = https://github.com/linux-test-project/ltp
