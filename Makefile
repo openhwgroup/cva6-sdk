@@ -180,7 +180,7 @@ clean:
 
 clean-all: clean
 ifeq ($(PLATFORM),fpga/cva6-altera) 
-	rm linux_patch/0008*
+	rm -f linux_patch/0008*
 endif
 	rm -rf $(RISCV) riscv-isa-sim/build riscv-tests/build
 	make -C buildroot clean
