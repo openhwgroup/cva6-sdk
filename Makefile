@@ -78,7 +78,7 @@ tests: install-dir $(CC)
 $(CC): $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig)
 ifeq ($(PLATFORM),fpga/cva6-altera) 
 	cp agilex_patch/0008* linux_patch/
-	patch -p1 -d opensbi < agilex_patch/opensbi.patch
+	patch --forward -p1 -d opensbi < agilex_patch/opensbi.patch || true
 endif
 	make -C buildroot defconfig BR2_DEFCONFIG=../$(buildroot_defconfig)
 	make -C buildroot host-gcc-final $(buildroot-mk)
