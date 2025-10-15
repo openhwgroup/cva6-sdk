@@ -1,0 +1,15 @@
+diff --git a/riscv/configs/defconfig b/arch/riscv/configs/defconfig
+index cf5b1c780f..db4acb6c2f 100644
+--- a/arch/riscv/configs/defconfig
++++ b/arch/riscv/configs/defconfig
+@@ -27,7 +27,9 @@ CONFIG_DEFAULT_HOSTNAME="ariane-fpga"
+ CONFIG_SWAP=y
+ CONFIG_SYSVIPC=y
+ CONFIG_SYSVIPC_SYSCTL=y
+-# CONFIG_POSIX_MQUEUE is not set
++CONFIG_SYSVIPC_SEM=y
++CONFIG_POSIX_MQUEUE =y
++CONFIG_POSIX_SEM=y
+ CONFIG_CROSS_MEMORY_ATTACH=y
+ CONFIG_USELIB=y
+ # CONFIG_AUDIT is not set

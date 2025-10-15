@@ -1,0 +1,8 @@
+label: dos
+label-id: 0xc906d614
+device: /dev/sdb
+unit: sectors
+
+/dev/sdb1 : start=        2048, size=      204800, type=c, bootable
+/dev/sdb2 : start=      206848, size=      841728, type=83
+/dev/sdb3 : start=     1048576, type=83

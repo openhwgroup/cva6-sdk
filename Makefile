@@ -78,7 +78,7 @@ tests: install-dir $(CC)
 $(CC): $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig)
 ifeq ($(PLATFORM),fpga/cva6-altera) 
 	cp agilex_patch/0008* linux_patch/
-	patch -p1 -d opensbi < agilex_patch/opensbi.patch
+	patch --forward -p1 -d opensbi < agilex_patch/opensbi.patch || true
 endif
 	make -C buildroot defconfig BR2_DEFCONFIG=../$(buildroot_defconfig)
 	make -C buildroot host-gcc-final $(buildroot-mk)
@@ -138,16 +138,31 @@ FWPAYLOAD_SECTORSIZE = $(shell ls -l --block-size=512 $(RISCV)/fw_payload.bin | 
 FWPAYLOAD_SECTOREND = $(shell echo $(FWPAYLOAD_SECTORSTART)+$(FWPAYLOAD_SECTORSIZE) | bc)
 SDDEVICE_PART1 = $(shell lsblk $(SDDEVICE) -no PATH | head -2 | tail -1)
 SDDEVICE_PART2 = $(shell lsblk $(SDDEVICE) -no PATH | head -3 | tail -1)
+SDDEVICE_PART3 = $(shell lsblk $(SDDEVICE) -no PATH | head -4 | tail -1)
 # Always flash uImage at 512M, easier for u-boot boot command
 UIMAGE_SECTORSTART := 512M
 flash-sdcard: format-sd
+ifeq ($(PLATFORM),fpga/ariane)
 	dd if=$(RISCV)/fw_payload.bin of=$(SDDEVICE_PART1) status=progress oflag=sync bs=1M
 	dd if=$(RISCV)/uImage         of=$(SDDEVICE_PART2) status=progress oflag=sync bs=1M
+else ifeq ($(PLATFORM),fpga/cva6-altera)
+	cp altera-sd-card/u-boot.itb /media/*/*/
+	dd if=$(RISCV)/fw_payload.bin of=$(SDDEVICE_PART2) status=progress oflag=sync bs=1M
+	dd if=$(RISCV)/uImage         of=$(SDDEVICE_PART3) status=progress oflag=sync bs=1M
+else
+	@echo 'Unknown platform' && exit 1
+endif
 
 format-sd: $(SDDEVICE)
 	@test -n "$(SDDEVICE)" || (echo 'SDDEVICE must be set, Ex: make flash-sdcard SDDEVICE=/dev/sdc' && exit 1)
+ifeq ($(PLATFORM),fpga/ariane)
 	sgdisk --clear -g --new=1:$(FWPAYLOAD_SECTORSTART):$(FWPAYLOAD_SECTOREND) --new=2:$(UIMAGE_SECTORSTART):0 --typecode=1:3000 --typecode=2:8300 $(SDDEVICE)
-
+else ifeq ($(PLATFORM),fpga/cva6-altera)
+	@echo "WARNING: This will erase all data on $(SDDEVICE)"
+	@sfdisk $(SDDEVICE) --force < altera-sd-card/partition.txt
+else
+	@echo 'Unknown platform' && exit 1
+endif
 # specific recipes
 gcc: $(CC)
 vmlinux: $(RISCV)/vmlinux
@@ -165,7 +180,7 @@ clean:
 
 clean-all: clean
 ifeq ($(PLATFORM),fpga/cva6-altera) 
-	rm linux_patch/0008*
+	rm -f linux_patch/0008*
 endif
 	rm -rf $(RISCV) riscv-isa-sim/build riscv-tests/build
 	make -C buildroot clean

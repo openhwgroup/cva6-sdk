@@ -9,7 +9,7 @@ Included tools:
 * [u-boot](https://github.com/openhwgroup/u-boot/)
 * [opensbi](https://github.com/riscv/opensbi/), the open-source reference implementation of the RISC-V Supervisor Binary Interface (SBI)
 
-As of now, the SDK has been designed and tested for the **Digilent Genesys 2** FPGA board. To implement and test SDK for other boards in this repository, you can volunteer to create and drive a new project at the OpenHW Group.
+As of now, the SDK has been designed and tested for the **Digilent Genesys 2** FPGA board and the **Agilex 7** Development Kit. To implement and test SDK for other boards in this repository, you can volunteer to create and drive a new project at the OpenHW Group.
 
 ## Quickstart
 
@@ -23,6 +23,22 @@ Requirements Fedora:
 $ sudo dnf install autoconf automake @development-tools curl dtc libmpc-devel mpfr-devel gmp-devel libusb-devel gawk gcc-c++ bison flex texinfo gperf libtool patchutils bc zlib-devel expat-devel
 ```
 You can select the XLEN by setting it in the Makefile.
+You can also select the PLATFORM and BOARD. 
+By default, 
+
+```
+PLATFORM := fpga/ariane 
+BOARD = genesysII
+```
+
+will generate the images for the **Digilent Genesys 2** FPGA board.
+
+To change to the **Agilex 7** Development Kit select 
+```
+PLATFORM := fpga/cva6-altera
+BOARD = agilex7
+```
+
 Then compile the Linux images with
 
 ```console
