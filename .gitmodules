@@ -14,7 +14,7 @@
 	url = https://github.com/pulp-platform/vitetris.git
 [submodule "u-boot"]
 	path = u-boot
-	url = https://github.com/planvtech/u-boot/
+	url = https://github.com/openhwgroup/u-boot
 	branch = support_agilex
 [submodule "opensbi"]
 	path = opensbi
