@@ -105,6 +105,22 @@ This project follows the common RISC-V boot procedure.
 4. [Linux Kernel](https://github.com/torvalds/linux) (S-Mode). Loads, decompresses and launches /sbin/init from Ramdisk.
 5. User space applications (U-Mode)
 
+## Run in QEMU
+
+```sh
+make BUILDROOT_DEFCONFIG=buildroot64_qemu_defconfig
+buildroot/output/host/bin/qemu-system-riscv64 \
+    -M virt -cpu rv64 -m 1G -nographic \
+    -bios install64_qemu/fw_dynamic.bin \
+    -initrd install64_qemu/rootfs.cpio \
+    -kernel install64_qemu/Image \
+    -append "rootwait root=/dev/ram ro"
+```
+
+It uses a simpler boot process that skips the U-Boot step.
+Otherwise, a U-Boot configuration would need to be maintained, which allows U-Boot to run in a virtual environment but boot from an (emulated) SD card, as the FPGA version does.
+
+
 ## Using toolchain outside of the SDK
 
 See [Using the generated toolchain outside Buildroot](https://buildroot.org/downloads/manual/using-buildroot-toolchain.txt) from the buildroot documentation to see how to do it.

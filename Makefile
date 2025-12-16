@@ -1,13 +1,13 @@
 XLEN     ?= 64
 OUTPUT   ?= $(PWD)/install$(XLEN)
+BUILDROOT_DEFCONFIG ?= buildroot$(XLEN)_defconfig
 
-BUILDROOT_EXTERNAL_TREE_PATH := ../br2-ext-tree
-
-buildroot_defconfig = configs/buildroot$(XLEN)_defconfig
+buildroot_defconfig_path = ../configs/$(BUILDROOT_DEFCONFIG)
+buildroot_external_tree_path := ../br2-ext-tree
 
 all:
 	mkdir -p $(OUTPUT)
-	$(MAKE) -C buildroot BR2_EXTERNAL="$(BUILDROOT_EXTERNAL_TREE_PATH)" BR2_DEFCONFIG=../$(buildroot_defconfig) defconfig
+	$(MAKE) -C buildroot BR2_EXTERNAL="$(buildroot_external_tree_path)" BR2_DEFCONFIG=$(buildroot_defconfig_path) defconfig
 	$(MAKE) -C buildroot BINARIES_DIR=$(OUTPUT)
 
 clean:
@@ -20,8 +20,8 @@ clean:
 	$(MAKE) -C buildroot clean
 
 updatedefconfigs:
-	$(MAKE) -C buildroot BR2_EXTERNAL="$(BUILDROOT_EXTERNAL_TREE_PATH)" BR2_DEFCONFIG=../$(buildroot_defconfig) defconfig
-	$(MAKE) -C buildroot BR2_DEFCONFIG=../$(buildroot_defconfig) savedefconfig
+	$(MAKE) -C buildroot BR2_EXTERNAL="$(buildroot_external_tree_path)" BR2_DEFCONFIG=$(buildroot_defconfig_path) defconfig
+	$(MAKE) -C buildroot BR2_DEFCONFIG=$(buildroot_defconfig_path) savedefconfig
 	$(MAKE) -C buildroot linux-configure
 	$(MAKE) -C buildroot linux-update-defconfig
 
