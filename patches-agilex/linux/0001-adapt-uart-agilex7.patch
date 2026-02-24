@@ -1,0 +1,33 @@
+diff --git a/include/uapi/linux/serial_reg.h b/include/uapi/linux/serial_reg.h
+index be07b5470f..6f97aa19ba 100644
+--- a/include/uapi/linux/serial_reg.h
++++ b/include/uapi/linux/serial_reg.h
+@@ -21,7 +21,7 @@
+ #define UART_RX		0	/* In:  Receive buffer */
+ #define UART_TX		0	/* Out: Transmit buffer */
+ 
+-#define UART_IER	1	/* Out: Interrupt Enable Register */
++#define UART_IER	4	/* Out: Interrupt Enable Register */
+ #define UART_IER_MSI		0x08 /* Enable Modem status interrupt */
+ #define UART_IER_RLSI		0x04 /* Enable receiver line status interrupt */
+ #define UART_IER_THRI		0x02 /* Enable Transmitter holding register int. */
+@@ -31,8 +31,8 @@
+  */
+ #define UART_IERX_SLEEP		0x10 /* Enable sleep mode */
+ 
+-#define UART_IIR	2	/* In:  Interrupt ID Register */
+-#define UART_IIR_NO_INT		0x01 /* No interrupts pending */
++#define UART_IIR	5	/* In:  Interrupt ID Register */
++#define UART_IIR_NO_INT		0x00 /* No interrupts pending */
+ #define UART_IIR_ID		0x0e /* Mask for the interrupt ID */
+ #define UART_IIR_MSI		0x00 /* Modem status interrupt */
+ #define UART_IIR_THRI		0x02 /* Transmitter holding register empty */
+@@ -118,7 +118,7 @@
+ #define UART_LCR_CONF_MODE_A	UART_LCR_DLAB	/* Configutation mode A */
+ #define UART_LCR_CONF_MODE_B	0xBF		/* Configutation mode B */
+ 
+-#define UART_MCR	4	/* Out: Modem Control Register */
++#define UART_MCR	1	/* Out: Modem Control Register */
+ #define UART_MCR_CLKSEL		0x80 /* Divide clock by 4 (TI16C752, EFR[4]=1) */
+ #define UART_MCR_TCRTLR		0x40 /* Access TCR/TLR (TI16C752, EFR[4]=1) */
+ #define UART_MCR_XONANY		0x20 /* Enable Xon Any (TI16C752, EFR[4]=1) */

@@ -8,7 +8,7 @@ ITS_TEMPLATE_FILE=../fitImage.its.template
 ITS_FILE=../fitImage.its
 FIT_BINARY_NAME=$BINARIES_DIR/fitImage.itb
 
-GENIMAGE_CFG=../genimage.cfg
+GENIMAGE_CFG=../$2
 
 if grep -q '^BR2_RISCV_32=y' ${BR2_CONFIG}; then
     KERNEL_LOAD_ADDRESS=0x80400000

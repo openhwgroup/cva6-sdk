@@ -1,0 +1,24 @@
+Upstream-Status: Pending
+
+diff --git a/lib/utils/serial/uart8250.c b/lib/utils/serial/uart8250.c
+index 1fe053f8..6a56a496 100644
+--- a/lib/utils/serial/uart8250.c
++++ b/lib/utils/serial/uart8250.c
+@@ -73,7 +73,7 @@ static void set_reg(u32 num, u32 val)
+ 
+ static void uart8250_putc(char ch)
+ {
+-	while ((get_reg(UART_LSR_OFFSET) & UART_LSR_THRE) == 0)
++	while (((get_reg(UART_THR_OFFSET+7) << 8) + get_reg(UART_THR_OFFSET+6)) < 8)
+ 		;
+ 
+ 	set_reg(UART_THR_OFFSET, ch);
+@@ -81,7 +81,7 @@ static void uart8250_putc(char ch)
+ 
+ static int uart8250_getc(void)
+ {
+-	if (get_reg(UART_LSR_OFFSET) & UART_LSR_DR)
++	if (get_reg(UART_RBR_OFFSET) != 0)
+ 		return get_reg(UART_RBR_OFFSET);
+ 	return -1;
+ }

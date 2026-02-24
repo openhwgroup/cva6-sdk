@@ -1,0 +1,513 @@
+From 7bda0e3335824463ef2122e9991230bd03cd6e4d Mon Sep 17 00:00:00 2001
+From: AngelaGonzalezMarino
+ <135128652+AngelaGonzalezMarino@users.noreply.github.com>
+Date: Mon, 23 Feb 2026 10:32:07 +0100
+Subject: [PATCH 1/7] Support agilex (#13) * add support for agilex 7 * use
+ altera jtag uart driver * update frequency and remove xilinx elements *
+ modify boot cmd to not use sd card and remove xilinx related drivers * read
+ correct read/write space in buffer (agilex) * fix uart in dts * add device
+ tree and config for 64 bits * add support for mmc access * make changes in
+ synopsis driver dependent on use of agilex7
+
+[Andreas Korb: Adapt to u-boot 2025.10]
+Signed-off-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
+---
+ arch/riscv/Kconfig                           |  4 +
+ arch/riscv/dts/Makefile                      |  1 +
+ arch/riscv/dts/cv32a6_agilex7.dts            | 91 ++++++++++++++++++++
+ arch/riscv/dts/cv64a6_agilex7.dts            | 91 ++++++++++++++++++++
+ board/openhwgroup/cva6_agilex7/Kconfig       | 28 ++++++
+ board/openhwgroup/cva6_agilex7/Makefile      |  1 +
+ board/openhwgroup/cva6_agilex7/cva6.c        |  9 ++
+ configs/openhwgroup_cv32a6_agilex7_defconfig | 41 +++++++++
+ configs/openhwgroup_cv64a6_agilex7_defconfig | 43 +++++++++
+ drivers/mmc/snps_dw_mmc.c                    |  7 ++
+ drivers/serial/ns16550.c                     | 14 ++-
+ include/configs/openhwgroup_cva6_agilex7.h   | 18 ++++
+ 12 files changed, 346 insertions(+), 2 deletions(-)
+ create mode 100644 arch/riscv/dts/cv32a6_agilex7.dts
+ create mode 100644 arch/riscv/dts/cv64a6_agilex7.dts
+ create mode 100644 board/openhwgroup/cva6_agilex7/Kconfig
+ create mode 100644 board/openhwgroup/cva6_agilex7/Makefile
+ create mode 100644 board/openhwgroup/cva6_agilex7/cva6.c
+ create mode 100644 configs/openhwgroup_cv32a6_agilex7_defconfig
+ create mode 100644 configs/openhwgroup_cv64a6_agilex7_defconfig
+ create mode 100644 include/configs/openhwgroup_cva6_agilex7.h
+
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 04eb0e6f23c..fcb676c2be4 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -43,6 +43,9 @@ config TARGET_SIFIVE_UNMATCHED
+ 	bool "Support SiFive Unmatched Board"
+ 	select SYS_CACHE_SHIFT_6
+ 
++config TARGET_OPENHWGROUP_CVA6_AGILEX7
++	bool "Target cva6 architecture on Agilex 7 board"
++
+ config TARGET_SIPEED_MAIX
+ 	bool "Support Sipeed Maix Board"
+ 	select SYS_CACHE_SHIFT_6
+@@ -119,6 +122,7 @@ source "board/spacemit/bananapi-f3/Kconfig"
+ source "board/starfive/visionfive2/Kconfig"
+ source "board/thead/th1520_lpi4a/Kconfig"
+ source "board/xilinx/mbv/Kconfig"
++source "board/openhwgroup/cva6_agilex7/Kconfig"
+ 
+ # platform-specific options below
+ source "arch/riscv/cpu/andes/Kconfig"
+diff --git a/arch/riscv/dts/Makefile b/arch/riscv/dts/Makefile
+index a637727b76b..876a3ca3ce4 100644
+--- a/arch/riscv/dts/Makefile
++++ b/arch/riscv/dts/Makefile
+@@ -17,6 +17,7 @@ dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv32.dtb
+ dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv64.dtb
+ dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-binman.dtb
+ dtb-$(CONFIG_TARGET_ASPEED_AST2700_IBEX) += ast2700-ibex.dtb
++dtb-$(CONFIG_TARGET_OPENHWGROUP_CVA6_AGILEX7) += $(addsuffix .dtb, $(CONFIG_DEFAULT_DEVICE_TREE:"%"=%))
+ 
+ include $(srctree)/scripts/Makefile.dts
+ 
+diff --git a/arch/riscv/dts/cv32a6_agilex7.dts b/arch/riscv/dts/cv32a6_agilex7.dts
+new file mode 100644
+index 00000000000..353424dbb9a
+--- /dev/null
++++ b/arch/riscv/dts/cv32a6_agilex7.dts
+@@ -0,0 +1,91 @@
++/dts-v1/;
++
++/ {
++  #address-cells = <2>;
++  #size-cells = <2>;
++  compatible = "eth,ariane-bare-dev";
++  model = "eth,ariane-bare";
++  chosen {
++    stdout-path = "/soc/uart@10000000:115200";
++    //tick-timer =  "/cpus/cpu@0";
++  };
++  cpus {
++    #address-cells = <1>;
++    #size-cells = <0>;
++    timebase-frequency = <100000000>; // 25 MHz
++    CPU0: cpu@0 {
++      clock-frequency = <200000000>; // 50 MHz
++      device_type = "cpu";
++      reg = <0>;
++      status = "okay";
++      compatible = "eth, ariane", "riscv";
++      riscv,isa = "rv32ima";
++      mmu-type = "riscv,sv32";
++      tlb-split;
++      // HLIC - hart local interrupt controller
++      CPU0_intc: interrupt-controller {
++        #interrupt-cells = <1>;
++        interrupt-controller;
++        compatible = "riscv,cpu-intc";
++      };
++    };
++  };
++  memory@80000000 {
++    device_type = "memory";
++    reg = <0x0 0x80000000 0x0 0x40000000>;
++  };
++  L26: soc {
++    #address-cells = <2>;
++    #size-cells = <2>;
++    compatible = "eth,ariane-bare-soc", "simple-bus";
++    ranges;
++    clint@2000000 {
++      compatible = "riscv,clint0";
++      interrupts-extended = <&CPU0_intc 3 &CPU0_intc 7>;
++      reg = <0x0 0x2000000 0x0 0xc0000>;
++      reg-names = "control";
++    };
++    PLIC0: interrupt-controller@c000000 {
++      #address-cells = <0>;
++      #interrupt-cells = <1>;
++      compatible = "riscv,plic0";
++      interrupt-controller;
++      interrupts-extended = <&CPU0_intc 11 &CPU0_intc 9>;
++      reg = <0x0 0xc000000 0x0 0x4000000>;
++      riscv,max-priority = <7>;
++      riscv,ndev = <30>;
++    };
++//  debug-controller@0 {
++//    compatible = "riscv,debug-013";
++//    interrupts-extended = <&CPU0_intc 65535>;
++//    reg = <0x0 0x0 0x0 0x1000>;
++//    reg-names = "control";
++//  };
++    uart@10000000 {
++      compatible = "ns16750", "ns16550";
++      reg = <0x0 0x10000000 0x0 0x1000>;
++      clock-frequency = <200000000>;
++      current-speed = <115200>;
++      interrupt-parent = <&PLIC0>;
++      interrupts = <1>;
++      reg-shift = <0>; // regs are spaced on 32 bit boundary
++      reg-io-width = <1>; // only 32-bit access are supported
++    };
++    timer@18000000 {
++      compatible = "pulp,apb_timer";
++      interrupts = <0x00000004 0x00000005 0x00000006 0x00000007>;
++      reg = <0x00000000 0x18000000 0x00000000 0x00001000>;
++      interrupt-parent = <&PLIC0>;
++      reg-names = "control";
++    };
++    mmc: dwmmc0@ff808000 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			compatible = "snps,dw-mshc";
++			reg = <0x0 0xff808000 0x0 0x1000>;
++			fifo-depth = <0x400>;
++      fifo-mode = <1>;
++			status = "okay";
++		};
++  };
++};
+diff --git a/arch/riscv/dts/cv64a6_agilex7.dts b/arch/riscv/dts/cv64a6_agilex7.dts
+new file mode 100644
+index 00000000000..5464c7eef11
+--- /dev/null
++++ b/arch/riscv/dts/cv64a6_agilex7.dts
+@@ -0,0 +1,91 @@
++/dts-v1/;
++
++/ {
++  #address-cells = <2>;
++  #size-cells = <2>;
++  compatible = "eth,ariane-bare-dev";
++  model = "eth,ariane-bare";
++  chosen {
++    stdout-path = "/soc/uart@10000000:115200";
++    //tick-timer =  "/cpus/cpu@0";
++  };
++  cpus {
++    #address-cells = <1>;
++    #size-cells = <0>;
++    timebase-frequency = <50000000>; // 25 MHz
++    CPU0: cpu@0 {
++      clock-frequency = <100000000>; // 50 MHz
++      device_type = "cpu";
++      reg = <0>;
++      status = "okay";
++      compatible = "eth, ariane", "riscv";
++      riscv,isa = "rv64imafdc";
++      mmu-type = "riscv,sv39";
++      tlb-split;
++      // HLIC - hart local interrupt controller
++      CPU0_intc: interrupt-controller {
++        #interrupt-cells = <1>;
++        interrupt-controller;
++        compatible = "riscv,cpu-intc";
++      };
++    };
++  };
++  memory@80000000 {
++    device_type = "memory";
++    reg = <0x0 0x80000000 0x0 0x40000000>;
++  };
++  L26: soc {
++    #address-cells = <2>;
++    #size-cells = <2>;
++    compatible = "eth,ariane-bare-soc", "simple-bus";
++    ranges;
++    clint@2000000 {
++      compatible = "riscv,clint0";
++      interrupts-extended = <&CPU0_intc 3 &CPU0_intc 7>;
++      reg = <0x0 0x2000000 0x0 0xc0000>;
++      reg-names = "control";
++    };
++    PLIC0: interrupt-controller@c000000 {
++      #address-cells = <0>;
++      #interrupt-cells = <1>;
++      compatible = "riscv,plic0";
++      interrupt-controller;
++      interrupts-extended = <&CPU0_intc 11 &CPU0_intc 9>;
++      reg = <0x0 0xc000000 0x0 0x4000000>;
++      riscv,max-priority = <7>;
++      riscv,ndev = <30>;
++    };
++//  debug-controller@0 {
++//    compatible = "riscv,debug-013";
++//    interrupts-extended = <&CPU0_intc 65535>;
++//    reg = <0x0 0x0 0x0 0x1000>;
++//    reg-names = "control";
++//  };
++    uart@10000000 {
++      compatible = "ns16750", "ns16550";
++      reg = <0x0 0x10000000 0x0 0x1000>;
++      clock-frequency = <100000000>;
++      current-speed = <115200>;
++      interrupt-parent = <&PLIC0>;
++      interrupts = <1>;
++      reg-shift = <0>; // regs are spaced on 32 bit boundary
++      reg-io-width = <1>; // only 32-bit access are supported
++    };
++    timer@18000000 {
++      compatible = "pulp,apb_timer";
++      interrupts = <0x00000004 0x00000005 0x00000006 0x00000007>;
++      reg = <0x00000000 0x18000000 0x00000000 0x00001000>;
++      interrupt-parent = <&PLIC0>;
++      reg-names = "control";
++    };
++    mmc: dwmmc0@ff808000 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++			compatible = "snps,dw-mshc";
++			reg = <0x0 0xff808000 0x0 0x1000>;
++			fifo-depth = <0x400>;
++      fifo-mode = <1>;
++			status = "okay";
++		};
++  };
++};
+diff --git a/board/openhwgroup/cva6_agilex7/Kconfig b/board/openhwgroup/cva6_agilex7/Kconfig
+new file mode 100644
+index 00000000000..059c58e083d
+--- /dev/null
++++ b/board/openhwgroup/cva6_agilex7/Kconfig
+@@ -0,0 +1,28 @@
++if TARGET_OPENHWGROUP_CVA6_AGILEX7
++
++config SYS_BOARD
++	default "cva6_agilex7"
++
++config SYS_VENDOR
++	default "openhwgroup"
++
++config SYS_CPU
++	default "generic"
++
++config SYS_CONFIG_NAME
++	default "openhwgroup_cva6_agilex7"
++
++config SYS_TEXT_BASE
++	default 0x80200000 if SPL
++	default 0x80000000 if !RISCV_SMODE
++	default 0x80200000 if RISCV_SMODE && ARCH_RV64I
++	default 0x80400000 if RISCV_SMODE && ARCH_RV32I
++
++config SPL_TEXT_BASE
++	default 0x08000000
++
++config BOARD_SPECIFIC_OPTIONS # dummy
++    def_bool y
++    select GENERIC_RISCV
++
++endif
+diff --git a/board/openhwgroup/cva6_agilex7/Makefile b/board/openhwgroup/cva6_agilex7/Makefile
+new file mode 100644
+index 00000000000..b5d48306279
+--- /dev/null
++++ b/board/openhwgroup/cva6_agilex7/Makefile
+@@ -0,0 +1 @@
++obj-y	+= cva6.o
+diff --git a/board/openhwgroup/cva6_agilex7/cva6.c b/board/openhwgroup/cva6_agilex7/cva6.c
+new file mode 100644
+index 00000000000..f2c558dce7b
+--- /dev/null
++++ b/board/openhwgroup/cva6_agilex7/cva6.c
+@@ -0,0 +1,9 @@
++#include <init.h>
++
++int board_init(void) {
++  return 0;
++}
++
++int ft_board_setup(void *fdt, struct bd_info *bd) {
++  return 0;
++}
+diff --git a/configs/openhwgroup_cv32a6_agilex7_defconfig b/configs/openhwgroup_cv32a6_agilex7_defconfig
+new file mode 100644
+index 00000000000..29b8f4a0d7e
+--- /dev/null
++++ b/configs/openhwgroup_cv32a6_agilex7_defconfig
+@@ -0,0 +1,41 @@
++CONFIG_RISCV=y
++CONFIG_DEFAULT_DEVICE_TREE="cv32a6_agilex7"
++CONFIG_TARGET_OPENHWGROUP_CVA6_AGILEX7=y
++CONFIG_RISCV_SMODE=y
++# CONFIG_RISCV_ISA_C is not set
++CONFIG_OF_BOARD_SETUP=y
++CONFIG_BOOTDELAY=5
++CONFIG_USE_BOOTCOMMAND=y
++CONFIG_BOOTCOMMAND="mmc info; mmc read 90000000 100000 7000; setenv fdt_high 0xffffffff; bootm 90000000 - $(fdtcontroladdr)"
++CONFIG_DISPLAY_CPUINFO=y
++CONFIG_SPL_SPI_FLASH_MTD=y
++CONFIG_CMD_GPT=y
++# CONFIG_RANDOM_UUID is not set
++CONFIG_CMD_MMC=y
++CONFIG_CMD_MTD=y
++CONFIG_CMD_PART=y
++CONFIG_OF_EMBED=y
++CONFIG_MMC=y
++CONFIG_DM=y
++CONFIG_DM_MMC=y
++# CONFIG_MMC_WRITE is not set
++CONFIG_MMC_DW=y
++CONFIG_MMC_DW_SNPS=y
++CONFIG_MMC_BROKEN_CD=y
++CONFIG_DM_MTD=y
++CONFIG_MTD_SPI_NAND=y
++CONFIG_SPI_FLASH_ATMEL=y
++CONFIG_SPI_FLASH_EON=y
++CONFIG_SPI_FLASH_GIGADEVICE=y
++CONFIG_SPI_FLASH_ISSI=y
++CONFIG_SPI_FLASH_MACRONIX=y
++CONFIG_SPI_FLASH_SPANSION=y
++CONFIG_SPI_FLASH_STMICRO=y
++CONFIG_SPI_FLASH_SST=y
++CONFIG_SPI_FLASH_WINBOND=y
++CONFIG_SPI_FLASH_XMC=y
++# CONFIG_SPI_FLASH_USE_4K_SECTORS is not set
++CONFIG_SPI_FLASH_MTD=y
++CONFIG_SYS_NS16550=y
++# CONFIG_SPI=y
++#CONFIG_XILINX_SPI=y
+diff --git a/configs/openhwgroup_cv64a6_agilex7_defconfig b/configs/openhwgroup_cv64a6_agilex7_defconfig
+new file mode 100644
+index 00000000000..8adb3ce11bc
+--- /dev/null
++++ b/configs/openhwgroup_cv64a6_agilex7_defconfig
+@@ -0,0 +1,43 @@
++CONFIG_RISCV=y
++CONFIG_DEFAULT_DEVICE_TREE="cv64a6_agilex7"
++CONFIG_TARGET_OPENHWGROUP_CVA6_AGILEX7=y
++CONFIG_ARCH_RV64I=y
++CONFIG_RISCV_SMODE=y
++# CONFIG_RISCV_ISA_C is not set
++CONFIG_OF_BOARD_SETUP=y
++CONFIG_BOOTDELAY=5
++CONFIG_USE_BOOTCOMMAND=y
++CONFIG_BOOTCOMMAND="mmc info; mmc read 90000000 100000 5000; setenv fdt_high 0xffffffffffffffff; bootm 90000000 - $(fdtcontroladdr)"
++CONFIG_DISPLAY_CPUINFO=y
++CONFIG_SPL_SPI_FLASH_MTD=y
++CONFIG_CMD_GPT=y
++# CONFIG_RANDOM_UUID is not set
++CONFIG_CMD_MMC=y
++CONFIG_CMD_MTD=y
++CONFIG_CMD_PART=y
++CONFIG_OF_EMBED=y
++CONFIG_OF_EMBED=y
++CONFIG_MMC=y
++CONFIG_DM=y
++CONFIG_DM_MMC=y
++# CONFIG_MMC_WRITE is not set
++CONFIG_MMC_DW=y
++CONFIG_MMC_DW_SNPS=y
++CONFIG_MMC_BROKEN_CD=y
++CONFIG_DM_MTD=y
++CONFIG_MTD_SPI_NAND=y
++CONFIG_SPI_FLASH_ATMEL=y
++CONFIG_SPI_FLASH_EON=y
++CONFIG_SPI_FLASH_GIGADEVICE=y
++CONFIG_SPI_FLASH_ISSI=y
++CONFIG_SPI_FLASH_MACRONIX=y
++CONFIG_SPI_FLASH_SPANSION=y
++CONFIG_SPI_FLASH_STMICRO=y
++CONFIG_SPI_FLASH_SST=y
++CONFIG_SPI_FLASH_WINBOND=y
++CONFIG_SPI_FLASH_XMC=y
++# CONFIG_SPI_FLASH_USE_4K_SECTORS is not set
++CONFIG_SPI_FLASH_MTD=y
++CONFIG_SYS_NS16550=y
++# CONFIG_SPI=y
++# CONFIG_XILINX_SPI=y
+diff --git a/drivers/mmc/snps_dw_mmc.c b/drivers/mmc/snps_dw_mmc.c
+index 92880e0ed87..1fd07b82f1f 100644
+--- a/drivers/mmc/snps_dw_mmc.c
++++ b/drivers/mmc/snps_dw_mmc.c
+@@ -146,9 +146,12 @@ static int snps_dwmmc_probe(struct udevice *dev)
+ 	memcpy(&snps_dwmci_dm_ops, &dm_dwmci_ops, sizeof(struct dm_mmc_ops));
+ 	snps_dwmci_dm_ops.get_cd = snps_dwmmc_getcd;
+ 
++	//AGILEX7 DOES THIS CONFIGURATION IN HPS, NOT IN CVA6
++#if !AGILEX7
+ 	ret = snps_dwmmc_clk_setup(dev);
+ 	if (ret)
+ 		return ret;
++#endif
+ 
+ 	if (!priv->f_max)
+ 		clock_max = host->bus_hz;
+@@ -167,7 +170,11 @@ static int snps_dwmmc_probe(struct udevice *dev)
+ 	upriv->mmc = host->mmc;
+ 	host->mmc->dev = dev;
+ 
++#if AGILEX7
++	return 0; //AGILEX7 INITIALIZES THE SD CARD IN HPS, CVA6 DOES NOT NEED TO DO IT AGAIN
++#else
+ 	return dwmci_probe(dev);
++#endif
+ }
+ 
+ static int snps_dwmmc_bind(struct udevice *dev)
+diff --git a/drivers/serial/ns16550.c b/drivers/serial/ns16550.c
+index 4f7de3ea215..a74d07bace3 100644
+--- a/drivers/serial/ns16550.c
++++ b/drivers/serial/ns16550.c
+@@ -277,8 +277,11 @@ void ns16550_reinit(struct ns16550 *com_port, int baud_divisor)
+ 
+ void ns16550_putc(struct ns16550 *com_port, char c)
+ {
+-	while ((serial_in(&com_port->lsr) & UART_LSR_THRE) == 0)
+-		;
++#if AGILEX7
++	while (((serial_in(&com_port->spr) << 8) + (serial_in(&com_port->msr))) <8);
++#else
++	while ((serial_in(&com_port->lsr) & UART_LSR_THRE) == 0);
++#endif
+ 	serial_out(c, &com_port->thr);
+ 
+ 	/*
+@@ -294,7 +297,11 @@ void ns16550_putc(struct ns16550 *com_port, char c)
+ #if !CONFIG_IS_ENABLED(NS16550_MIN_FUNCTIONS)
+ char ns16550_getc(struct ns16550 *com_port)
+ {
++#if AGILEX7
++	while ((serial_in(&com_port->rbr)) == 0)
++#else
+ 	while ((serial_in(&com_port->lsr) & UART_LSR_DR) == 0)
++#endif
+ 		schedule();
+ 
+ 	return serial_in(&com_port->rbr);
+@@ -520,7 +527,10 @@ int ns16550_serial_probe(struct udevice *dev)
+ 		reset_deassert_bulk(&reset_bulk);
+ 
+ 	com_port->plat = dev_get_plat(dev);
++#if !AGILEX7
++	// no init needed in agilex
+ 	ns16550_init(com_port, -1);
++#endif
+ 
+ 	return 0;
+ }
+diff --git a/include/configs/openhwgroup_cva6_agilex7.h b/include/configs/openhwgroup_cva6_agilex7.h
+new file mode 100644
+index 00000000000..1c6640064bf
+--- /dev/null
++++ b/include/configs/openhwgroup_cva6_agilex7.h
+@@ -0,0 +1,18 @@
++#ifndef __CONFIG_H
++#define __CONFIG_H
++
++#include <linux/sizes.h>
++
++#define CONFIG_SYS_SDRAM_BASE		0x80000000
++#define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_2M)
++
++#define CONFIG_SYS_LOAD_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_2M)
++
++#define CONFIG_SYS_MALLOC_LEN       SZ_8M
++#define CONFIG_SYS_BOOTM_LEN        SZ_64M
++
++#define CONFIG_SYS_MAX_FLASH_BANKS 1
++#define CONFIG_SYS_FLASH_BASE 0x0
++
++#define AGILEX7 1
++#endif
+-- 
+2.39.5
+

@@ -1,0 +1,32 @@
+From a8df12169a01b1cad564285d2aae970949b4c7b9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Michael=20Wei=C3=9F?= <michael.weiss@aisec.fraunhofer.de>
+Date: Thu, 11 Dec 2025 21:14:11 +0100
+Subject: [PATCH 2/7] cva6: agilex7: updated Kconfig for current u-boot
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+SYS_TEXT_BASE was changed to TEXT_BASE. Thus, also change this in
+in board/openhwgroup/cva6_agilex7/Kconfig.
+
+Signed-off-by: Michael Weiß <michael.weiss@aisec.fraunhofer.de>
+---
+ board/openhwgroup/cva6_agilex7/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/board/openhwgroup/cva6_agilex7/Kconfig b/board/openhwgroup/cva6_agilex7/Kconfig
+index 059c58e083d..6bcd7474818 100644
+--- a/board/openhwgroup/cva6_agilex7/Kconfig
++++ b/board/openhwgroup/cva6_agilex7/Kconfig
+@@ -12,7 +12,7 @@ config SYS_CPU
+ config SYS_CONFIG_NAME
+ 	default "openhwgroup_cva6_agilex7"
+ 
+-config SYS_TEXT_BASE
++config TEXT_BASE
+ 	default 0x80200000 if SPL
+ 	default 0x80000000 if !RISCV_SMODE
+ 	default 0x80200000 if RISCV_SMODE && ARCH_RV64I
+-- 
+2.39.5
+

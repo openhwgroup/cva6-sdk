@@ -1,6 +1,7 @@
 XLEN     ?= 64
-OUTPUT   ?= $(PWD)/install$(XLEN)
-BUILDROOT_DEFCONFIG ?= buildroot$(XLEN)_defconfig
+DEVICE   ?= "genesysII"
+OUTPUT   ?= $(PWD)/install$(XLEN)_$(DEVICE)
+BUILDROOT_DEFCONFIG ?= buildroot$(XLEN)_$(DEVICE)_defconfig
 
 buildroot_defconfig_path = ../configs/$(BUILDROOT_DEFCONFIG)
 buildroot_external_tree_path := ../br2-ext-tree

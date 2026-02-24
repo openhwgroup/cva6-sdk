@@ -1,0 +1,32 @@
+From 892b8910947a5a615465daea4521d2ae5d2fccc5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Michael=20Wei=C3=9F?= <michael.weiss@aisec.fraunhofer.de>
+Date: Fri, 12 Dec 2025 11:24:23 +0100
+Subject: [PATCH 4/7] configs: agilex7: disable RISCV_ISA_F for 32bit defconfig
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Disable RISCV_ISA_F in configs/openhwgroup_cv32a6_agilex7_defconfig
+to avoid 'can't link soft-float modules with double-float module'
+errors with more recent toolchains.
+
+Signed-off-by: Michael Weiß <michael.weiss@aisec.fraunhofer.de>
+---
+ configs/openhwgroup_cv32a6_agilex7_defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/configs/openhwgroup_cv32a6_agilex7_defconfig b/configs/openhwgroup_cv32a6_agilex7_defconfig
+index 2eaf998479c..2c629fbecd9 100644
+--- a/configs/openhwgroup_cv32a6_agilex7_defconfig
++++ b/configs/openhwgroup_cv32a6_agilex7_defconfig
+@@ -8,6 +8,7 @@ CONFIG_DEFAULT_DEVICE_TREE="cv32a6_agilex7"
+ CONFIG_TARGET_OPENHWGROUP_CVA6_AGILEX7=y
+ CONFIG_RISCV_SMODE=y
+ # CONFIG_RISCV_ISA_C is not set
++# CONFIG_RISCV_ISA_F is not set
+ CONFIG_OF_BOARD_SETUP=y
+ CONFIG_BOOTDELAY=5
+ CONFIG_USE_BOOTCOMMAND=y
+-- 
+2.39.5
+

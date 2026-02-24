@@ -1,0 +1,174 @@
+From 13dc43086c1ea41a01e3dccb537086c8898db615 Mon Sep 17 00:00:00 2001
+From: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
+Date: Mon, 23 Feb 2026 11:00:16 +0100
+Subject: [PATCH 6/7] dt: Streamline agilex dts to the ones in cva6 repo
+
+---
+ arch/riscv/dts/cv32a6_agilex7.dts | 41 ++++++++++++++++++++-----------
+ arch/riscv/dts/cv64a6_agilex7.dts | 39 +++++++++++++++++++----------
+ 2 files changed, 53 insertions(+), 27 deletions(-)
+
+diff --git a/arch/riscv/dts/cv32a6_agilex7.dts b/arch/riscv/dts/cv32a6_agilex7.dts
+index 353424dbb9a..973073fa051 100644
+--- a/arch/riscv/dts/cv32a6_agilex7.dts
++++ b/arch/riscv/dts/cv32a6_agilex7.dts
+@@ -3,8 +3,8 @@
+ / {
+   #address-cells = <2>;
+   #size-cells = <2>;
+-  compatible = "eth,ariane-bare-dev";
+-  model = "eth,ariane-bare";
++  compatible = "eth,cva6-bare-dev";
++  model = "eth,cva6-bare";
+   chosen {
+     stdout-path = "/soc/uart@10000000:115200";
+     //tick-timer =  "/cpus/cpu@0";
+@@ -12,13 +12,13 @@
+   cpus {
+     #address-cells = <1>;
+     #size-cells = <0>;
+-    timebase-frequency = <100000000>; // 25 MHz
++    timebase-frequency = <50000000>; // 50 MHz
+     CPU0: cpu@0 {
+-      clock-frequency = <200000000>; // 50 MHz
++      clock-frequency = <100000000>; // 100 MHz
+       device_type = "cpu";
+       reg = <0>;
+       status = "okay";
+-      compatible = "eth, ariane", "riscv";
++      compatible = "eth, cva6", "riscv";
+       riscv,isa = "rv32ima";
+       mmu-type = "riscv,sv32";
+       tlb-split;
+@@ -37,7 +37,7 @@
+   L26: soc {
+     #address-cells = <2>;
+     #size-cells = <2>;
+-    compatible = "eth,ariane-bare-soc", "simple-bus";
++    compatible = "eth,cva6-bare-soc", "simple-bus";
+     ranges;
+     clint@2000000 {
+       compatible = "riscv,clint0";
+@@ -64,7 +64,7 @@
+     uart@10000000 {
+       compatible = "ns16750", "ns16550";
+       reg = <0x0 0x10000000 0x0 0x1000>;
+-      clock-frequency = <200000000>;
++      clock-frequency = <100000000>;
+       current-speed = <115200>;
+       interrupt-parent = <&PLIC0>;
+       interrupts = <1>;
+@@ -78,14 +78,27 @@
+       interrupt-parent = <&PLIC0>;
+       reg-names = "control";
+     };
++    clk_mmc: clk_mmc {
++      compatible = "fixed-clock";
++      #clock-cells = <0>;
++      clock-frequency = <50000000>;
++    };
+     mmc: dwmmc0@ff808000 {
+-			#address-cells = <1>;
+-			#size-cells = <0>;
+-			compatible = "snps,dw-mshc";
+-			reg = <0x0 0xff808000 0x0 0x1000>;
+-			fifo-depth = <0x400>;
++      #address-cells = <1>;
++      #size-cells = <0>;
++      compatible = "snps,dw-mshc";
++      reg = <0x0 0xff808000 0x0 0x1000>;
++      fifo-depth = <0x400>;
+       fifo-mode = <1>;
+-			status = "okay";
+-		};
++      interrupt-parent = <&PLIC0>;
++      interrupts = <0x8>;
++      clocks = <&clk_mmc>,<&clk_mmc>;
++      clock-names = "biu","ciu";
++      status = "okay";
++      #cap-sd-highspeed;
++      broken-cd;
++      disable-wp;
++      bus-width = <4>;
++    };
+   };
+ };
+diff --git a/arch/riscv/dts/cv64a6_agilex7.dts b/arch/riscv/dts/cv64a6_agilex7.dts
+index 5464c7eef11..f41fca9f58a 100644
+--- a/arch/riscv/dts/cv64a6_agilex7.dts
++++ b/arch/riscv/dts/cv64a6_agilex7.dts
+@@ -3,8 +3,8 @@
+ / {
+   #address-cells = <2>;
+   #size-cells = <2>;
+-  compatible = "eth,ariane-bare-dev";
+-  model = "eth,ariane-bare";
++  compatible = "eth,cva6-bare-dev";
++  model = "eth,cva6-bare";
+   chosen {
+     stdout-path = "/soc/uart@10000000:115200";
+     //tick-timer =  "/cpus/cpu@0";
+@@ -12,13 +12,13 @@
+   cpus {
+     #address-cells = <1>;
+     #size-cells = <0>;
+-    timebase-frequency = <50000000>; // 25 MHz
++    timebase-frequency = <50000000>; // 50 MHz
+     CPU0: cpu@0 {
+-      clock-frequency = <100000000>; // 50 MHz
++      clock-frequency = <100000000>; // 100 MHz
+       device_type = "cpu";
+       reg = <0>;
+       status = "okay";
+-      compatible = "eth, ariane", "riscv";
++      compatible = "eth, cva6", "riscv";
+       riscv,isa = "rv64imafdc";
+       mmu-type = "riscv,sv39";
+       tlb-split;
+@@ -37,7 +37,7 @@
+   L26: soc {
+     #address-cells = <2>;
+     #size-cells = <2>;
+-    compatible = "eth,ariane-bare-soc", "simple-bus";
++    compatible = "eth,cva6-bare-soc", "simple-bus";
+     ranges;
+     clint@2000000 {
+       compatible = "riscv,clint0";
+@@ -78,14 +78,27 @@
+       interrupt-parent = <&PLIC0>;
+       reg-names = "control";
+     };
++    clk_mmc: clk_mmc {
++      compatible = "fixed-clock";
++      #clock-cells = <0>;
++      clock-frequency = <50000000>;
++    };
+     mmc: dwmmc0@ff808000 {
+-			#address-cells = <1>;
+-			#size-cells = <0>;
+-			compatible = "snps,dw-mshc";
+-			reg = <0x0 0xff808000 0x0 0x1000>;
+-			fifo-depth = <0x400>;
++      #address-cells = <1>;
++      #size-cells = <0>;
++      compatible = "snps,dw-mshc";
++      reg = <0x0 0xff808000 0x0 0x1000>;
++      fifo-depth = <0x400>;
+       fifo-mode = <1>;
+-			status = "okay";
+-		};
++      interrupt-parent = <&PLIC0>;
++      interrupts = <0x8>;
++      clocks = <&clk_mmc>,<&clk_mmc>;
++      clock-names = "biu","ciu";
++      status = "okay";
++      #cap-sd-highspeed;
++      broken-cd;
++      disable-wp;
++      bus-width = <4>;
++    };
+   };
+ };
+-- 
+2.39.5
+

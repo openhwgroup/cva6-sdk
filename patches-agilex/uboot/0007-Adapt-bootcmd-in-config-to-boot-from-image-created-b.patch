@@ -1,0 +1,68 @@
+From 8fd91bcceff63b1d9afc7b07f2ae23996463cbfc Mon Sep 17 00:00:00 2001
+From: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
+Date: Tue, 24 Feb 2026 10:58:23 +0100
+Subject: [PATCH 7/7] Adapt bootcmd in config to boot from image created by
+ genimage
+
+---
+ configs/openhwgroup_cv32a6_agilex7_defconfig | 5 ++++-
+ configs/openhwgroup_cv64a6_agilex7_defconfig | 6 ++++--
+ 2 files changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/configs/openhwgroup_cv32a6_agilex7_defconfig b/configs/openhwgroup_cv32a6_agilex7_defconfig
+index 36315539bfe..458c7fb7dec 100644
+--- a/configs/openhwgroup_cv32a6_agilex7_defconfig
++++ b/configs/openhwgroup_cv32a6_agilex7_defconfig
+@@ -10,10 +10,11 @@ CONFIG_RISCV_SMODE=y
+ # CONFIG_RISCV_ISA_C is not set
+ # CONFIG_RISCV_ISA_F is not set
+ CONFIG_FIT=y
++# CONFIG_LEGACY_IMAGE_FORMAT is not set
+ CONFIG_BOOTDELAY=5
+ CONFIG_OF_BOARD_SETUP=y
+ CONFIG_USE_BOOTCOMMAND=y
+-CONFIG_BOOTCOMMAND="mmc info; mmc read 90000000 100000 7000; setenv fdt_high 0xffffffff; bootm 90000000 - $(fdtcontroladdr)"
++CONFIG_BOOTCOMMAND="mmc info; fatload mmc 0:3; bootm"
+ CONFIG_DISPLAY_CPUINFO=y
+ CONFIG_CMD_GPT=y
+ CONFIG_CMD_MMC=y
+@@ -21,6 +22,8 @@ CONFIG_CMD_MTD=y
+ CONFIG_CMD_PART=y
+ CONFIG_CMD_EXT4=y
+ CONFIG_CMD_FAT=y
++CONFIG_USE_BOOTFILE=y
++CONFIG_BOOTFILE="fitImage.itb"
+ CONFIG_MMC=y
+ # CONFIG_MMC_WRITE is not set
+ CONFIG_MMC_BROKEN_CD=y
+diff --git a/configs/openhwgroup_cv64a6_agilex7_defconfig b/configs/openhwgroup_cv64a6_agilex7_defconfig
+index a400b59aeb2..2319d7ac02d 100644
+--- a/configs/openhwgroup_cv64a6_agilex7_defconfig
++++ b/configs/openhwgroup_cv64a6_agilex7_defconfig
+@@ -8,12 +8,12 @@ CONFIG_SYS_LOAD_ADDR=0x90000000
+ CONFIG_TARGET_OPENHWGROUP_CVA6_AGILEX7=y
+ CONFIG_ARCH_RV64I=y
+ CONFIG_RISCV_SMODE=y
+-# CONFIG_RISCV_ISA_C is not set
+ CONFIG_FIT=y
++# CONFIG_LEGACY_IMAGE_FORMAT is not set
+ CONFIG_BOOTDELAY=5
+ CONFIG_OF_BOARD_SETUP=y
+ CONFIG_USE_BOOTCOMMAND=y
+-CONFIG_BOOTCOMMAND="mmc info; mmc read 90000000 100000 5000; setenv fdt_high 0xffffffffffffffff; bootm 90000000 - $(fdtcontroladdr)"
++CONFIG_BOOTCOMMAND="mmc info; fatload mmc 0:3; bootm"
+ CONFIG_DISPLAY_CPUINFO=y
+ CONFIG_CMD_GPT=y
+ CONFIG_CMD_MMC=y
+@@ -21,6 +21,8 @@ CONFIG_CMD_MTD=y
+ CONFIG_CMD_PART=y
+ CONFIG_CMD_EXT4=y
+ CONFIG_CMD_FAT=y
++CONFIG_USE_BOOTFILE=y
++CONFIG_BOOTFILE="fitImage.itb"
+ CONFIG_MMC=y
+ # CONFIG_MMC_WRITE is not set
+ CONFIG_MMC_BROKEN_CD=y
+-- 
+2.39.5
+
