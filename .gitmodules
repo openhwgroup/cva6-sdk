@@ -8,7 +8,7 @@
 	branch = master
 [submodule "buildroot"]
 	path = buildroot
-	url = git://git.buildroot.net/buildroot
+	url = https://gitlab.com/buildroot.org/buildroot.git
 [submodule "vitetris"]
 	path = vitetris
 	url = https://github.com/pulp-platform/vitetris.git
