@@ -3,11 +3,11 @@
 This repository houses a set of RISCV tools for the [CVA6 core](https://github.com/openhwgroup/cva6).
 Most importantly, it **does not contain openOCD**.
 
-As of now, the SDK has been designed and tested for the **Digilent Genesys 2** FPGA board. To implement and test SDK for other boards in this repository, you can volunteer to create and drive a new project at the OpenHW Group.
+As of now, the SDK has been designed and tested for the **Digilent Genesys 2** and **Agilex 7** FPGA boards. To implement and test SDK for other boards in this repository, you can volunteer to create and drive a new project at the OpenHW Group.
 
 ## Quickstart
 
-Below are the packages required to build and flash the Linux image for CVA6 on a Genesys 2 board.
+Below are the packages required to build the Linux image for CVA6.
 
 Ubuntu 24.04:
 ```console
@@ -20,25 +20,28 @@ $ sudo dnf install make gcc g++ perl which awk git bc rsync cpio wget patch open
 ```
 
 Both the CVA6 chip and this SDK are compiled for 64-bit by default.
-You can select the XLEN (i.e., 32- or 64-bit) by setting the XLEN variable on `make`.
+You can select the XLEN (i.e., 32- or 64-bit) by setting the `XLEN` variable on `make`.
+The target board can be specified with `BOARD=` which is `genesys2` by default.
 Compile the image with:
 
 ```console
 $ git submodule update --init --recursive
-$ make  # or `make XLEN=32` for 32-bit
+$ make  # or `make XLEN=32 BOARD=agilex7` for 32-bit/agilex7
 ```
 
 This builds a RISC-V toolchain, OpenSBI, u-boot including a corresponding device tree, the Linux kernel, and the initramfs including the rootfs.
 
-By default, the final image is generated at `install<XLEN>/sdcard.img`.
+By default, the final image is generated at `install<XLEN>_<BOARD>/sdcard.img`.
 To change the location, set the `OUTPUT` variable in the `make` command like `make OUTPUT=build`.
 
 ## Flash to SD card
 
 ### Linux
 
+Assuming `XLEN=64` and `BOARD=genesys2`:
+
 ```console
-$ dd if=install64/sdcard.img of=/dev/sd<device> status=progress oflag=sync bs=4M conv=sparse
+$ dd if=install64_genesys2/sdcard.img of=/dev/sd<device> status=progress oflag=sync bs=4M conv=sparse
 ```
 
 Note that you need to change `<device>` to the actual device letter of your SD card.
@@ -108,7 +111,7 @@ This project follows the common RISC-V boot procedure.
 ## Run in QEMU
 
 ```sh
-make BUILDROOT_DEFCONFIG=buildroot64_qemu_defconfig
+make XLEN=64 BOARD=qemu
 buildroot/output/host/bin/qemu-system-riscv64 \
     -M virt -cpu rv64 -m 1G -nographic \
     -bios install64_qemu/fw_dynamic.bin \
