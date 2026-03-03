@@ -1,5 +1,5 @@
 diff --git a/include/uapi/linux/serial_reg.h b/include/uapi/linux/serial_reg.h
-index be07b5470f..6f97aa19ba 100644
+index be07b5470f4b..6f97aa19ba59 100644
 --- a/include/uapi/linux/serial_reg.h
 +++ b/include/uapi/linux/serial_reg.h
 @@ -21,7 +21,7 @@
@@ -31,3 +31,12 @@ index be07b5470f..6f97aa19ba 100644
  #define UART_MCR_CLKSEL		0x80 /* Divide clock by 4 (TI16C752, EFR[4]=1) */
  #define UART_MCR_TCRTLR		0x40 /* Access TCR/TLR (TI16C752, EFR[4]=1) */
  #define UART_MCR_XONANY		0x20 /* Enable Xon Any (TI16C752, EFR[4]=1) */
+@@ -142,7 +142,7 @@
+ #define UART_LSR_BI		0x10 /* Break interrupt indicator */
+ #define UART_LSR_FE		0x08 /* Frame error indicator */
+ #define UART_LSR_PE		0x04 /* Parity error indicator */
+-#define UART_LSR_OE		0x02 /* Overrun error indicator */
++#define UART_LSR_OE		0x00 /* Overrun error indicator */
+ #define UART_LSR_DR		0x01 /* Receiver data ready */
+ #define UART_LSR_BRK_ERROR_BITS	(UART_LSR_BI|UART_LSR_FE|UART_LSR_PE|UART_LSR_OE)
+ 
