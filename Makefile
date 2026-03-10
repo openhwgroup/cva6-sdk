@@ -15,7 +15,6 @@ NR_CORES := $(shell nproc)
 
 # SBI options
 PLATFORM := fpga/ariane
-# PLATFORM := fpga/cva6-altera
 FW_FDT_PATH ?=
 sbi-mk = PLATFORM=$(PLATFORM) CROSS_COMPILE=$(TOOLCHAIN_PREFIX) $(if $(FW_FDT_PATH),FW_FDT_PATH=$(FW_FDT_PATH),)
 ifeq ($(XLEN), 32)
@@ -25,8 +24,6 @@ sbi-mk += PLATFORM_RISCV_ISA=rv64imafdc PLATFORM_RISCV_XLEN=64
 endif
 
 # U-Boot options
-BOARD = genesysII
-# BOARD = agilex7
 ifeq ($(XLEN), 32)
 UIMAGE_LOAD_ADDRESS := 0x80400000
 UIMAGE_ENTRY_POINT  := 0x80400000
@@ -76,10 +73,6 @@ tests: install-dir $(CC)
 	cd $(ROOT)
 
 $(CC): $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig)
-ifeq ($(PLATFORM),fpga/cva6-altera) 
-	cp agilex_patch/0008* linux_patch/
-	patch -p1 -d opensbi < agilex_patch/opensbi.patch
-endif
 	make -C buildroot defconfig BR2_DEFCONFIG=../$(buildroot_defconfig)
 	make -C buildroot host-gcc-final $(buildroot-mk)
 
@@ -115,7 +108,7 @@ $(RISCV)/u-boot.bin: u-boot/u-boot.bin
 	cp $< $@
 
 $(MKIMAGE) u-boot/u-boot.bin: $(CC)
-	make -C u-boot openhwgroup_cv$(XLEN)a6_$(BOARD)_defconfig
+	make -C u-boot openhwgroup_cv$(XLEN)a6_genesysII_defconfig
 	make -C u-boot CROSS_COMPILE=$(TOOLCHAIN_PREFIX)
 
 # OpenSBI with u-boot as payload
@@ -164,9 +157,6 @@ clean:
 	make -C opensbi distclean
 
 clean-all: clean
-ifeq ($(PLATFORM),fpga/cva6-altera) 
-	rm linux_patch/0008*
-endif
 	rm -rf $(RISCV) riscv-isa-sim/build riscv-tests/build
 	make -C buildroot clean
 
