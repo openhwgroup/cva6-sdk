@@ -36,9 +36,9 @@ To change the location, set the `OUTPUT` variable in the `make` command like `ma
 
 ## Flash to SD card
 
-### Linux
+Assuming `XLEN=64` and `BOARD=genesys2`.
 
-Assuming `XLEN=64` and `BOARD=genesys2`:
+### Linux
 
 ```console
 $ dd if=install64_genesys2/sdcard.img of=/dev/sd<device> status=progress oflag=sync bs=4M conv=sparse
@@ -49,7 +49,7 @@ Use the command `lsblk` or `fdisk -l` to find it.
 
 ### Windows
 
-The final image file `install64/sdcard.img` can be flashed to an SD card with [Rufus](https://rufus.ie).
+The final image file `install64_genesys2/sdcard.img` can be flashed to an SD card with [Rufus](https://rufus.ie).
 
 ## CVA6 compatibility
 
@@ -59,23 +59,23 @@ Tested with the following CVA6 configs:
 
 ## Repository content
 
+- **./blobs/**: Contains pre-built binary files. For example, `altera-u-boot.itb`, which is a flattened image tree binary required by the Agilex7 board by its Arm processor. It was built from the offical [Altera repository](https://github.com/altera-fpga/u-boot-socfpga). Execute `buildroot/output/host/bin/mkimage -l blobs/altera-u-boot.itb` to list its content.
 - **./br2-ext-tree/**: Extension tree for buildroot. This directory contains packages which are not part of the official buildroot package list.
 - **./buildroot/**: The mainline buildroot repository without any custom changes. It is a git submodule.
-- **./configs/**: Contains relevant config files.
+- **./configs/**: Contains config files including `genimage.cfg` which defines the structure and content of the final image `sdcard.img`..
 - **./patches/**: Contains patches used by buildroot to apply to software components. It includes the Linux driver for the [open-source Ethernet media access controller](https://github.com/lowRISC/ariane-ethernet) from lowRISC required for ethernet to work under Linux in the CVA6. And patches to add CVA6 support to U-Boot.
 - **./rootfs/**: The filesystem overlay. Put files here if you want to use them on your target system. Contains key files to prevent them having to be generated on each boot. Explained in further detail below.
 - **./Dockerfile**: Dockerfile to build the image. Explained in further detail below.
 - **./fitImage.its.template**: This defines the content of the [Flat Image Tree (FIT)](https://docs.u-boot.org/en/stable/usage/fit/howto.html) used by U-Boot to package the boot components it is meant to read and launch. The FIT image is part of the `sdcard.img`.
-- **./genimage.cfg**: This defines the structure and content of the final image `sdcard.img`.
 - **./permission_table.txt**: Used by buildroot to set the permissions of custom files on the target. 
 - **./post_image.sh**: Called by buildroot after all components have been built. It packages them into the final image `sdcard.img`.
 
-## Structure of final image `sdcard.img`
+## Structure of final image `sdcard.img` (for genesys2)
 
-As defined in the files `genimage.cfg` and `fitImage.its.template`:
+As defined in the files `configs/genesys2/genimage.cfg` and `fitImage.its.template`:
 
 ```
-+------------------------- sdcard.img ------------------------+
++----------------sdcard.img (from genimage.cfg) ---------------+
 |                                                              |
 |  +------------------+------------------------------------+   |
 |  |  GPT Header &    |                                    |   |
@@ -93,6 +93,7 @@ As defined in the files `genimage.cfg` and `fitImage.its.template`:
 |  |           Partition 2 (FAT filesystem)                 |  |
 |  |  Contains:                                             |  |
 |  |   - fitImage.itb (Kernel + DTB + Ramdisk)              |  |
+|  |     as defined by fitImage.its.template                |  |
 |  +--------------------------------------------------------+  |
 |                                                              |
 +--------------------------------------------------------------+
