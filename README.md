@@ -149,8 +149,9 @@ This ensures each board has a different MAC address and avoids collisions.
 # Docker Container
 
 There is a Dockerfile to build the target image.
-The following command builds the `sdcard.img` and puts it into the `build/` directory.
+Note that the `buildroot` submodule needs to be initialized nevertheless.
+The following command builds the `sdcard.img` and puts it into the `install64_genesys2` directory.
 
 ```console
-$ sudo docker buildx build -t cva6-sdk-build --output=build .
+$ sudo docker buildx build --build-arg XLEN=64 --build-arg BOARD=genesys2 -t cva6-sdk-build --output=. .
 ```
