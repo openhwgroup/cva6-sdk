@@ -1,0 +1,637 @@
+From 6248abdaa60e70bf679e5d9f8fa680d9d58597ad Mon Sep 17 00:00:00 2001
+From: Kevin Eyssartier <kevin.eyssartier@thalesgroup.com>
+Date: Thu, 26 Mar 2026 17:49:38 +0100
+Subject: [PATCH 2/2] Add LowRisc Ethernet driver
+
+[Andreas Korb:
+  - Add capability to change MAC address
+  - Add required device tree changes for cv32a6
+  - Fix compilation errors and warnings with modern toolchain + new u-boot version
+]
+
+Signed-off-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
+---
+ arch/riscv/dts/cv32a6_genesysII.dts           |   8 +
+ arch/riscv/dts/cv64a6_genesysII.dts           |   8 +
+ .../openhwgroup_cv32a6_genesysII_defconfig    |   6 +
+ .../openhwgroup_cv64a6_genesysII_defconfig    |   6 +
+ drivers/net/Kconfig                           |   1 +
+ drivers/net/Makefile                          |   1 +
+ drivers/net/lowrisc/Kconfig                   |  21 +
+ drivers/net/lowrisc/Makefile                  |   6 +
+ drivers/net/lowrisc/lowrisc_100MHz.c          | 376 ++++++++++++++++++
+ drivers/net/lowrisc/lowrisc_100MHz.h          |  55 +++
+ 10 files changed, 488 insertions(+)
+ create mode 100644 drivers/net/lowrisc/Kconfig
+ create mode 100644 drivers/net/lowrisc/Makefile
+ create mode 100644 drivers/net/lowrisc/lowrisc_100MHz.c
+ create mode 100644 drivers/net/lowrisc/lowrisc_100MHz.h
+
+diff --git a/arch/riscv/dts/cv32a6_genesysII.dts b/arch/riscv/dts/cv32a6_genesysII.dts
+index 796bbd37c29..f52e946611a 100644
+--- a/arch/riscv/dts/cv32a6_genesysII.dts
++++ b/arch/riscv/dts/cv32a6_genesysII.dts
+@@ -120,6 +120,13 @@
+       //   //interrupt-parent = <&PLIC0>;
+       // };
+     };
++    mdio {
++      #address-cells = <1>;
++      #size-cells = <0>;
++      ethernet_phy: ethernet-phy@0 { /* Realtek RTL8211E-VL */
++          reg = <0>;
++      };
++    };
+     eth: lowrisc-eth@30000000 {
+       compatible = "lowrisc-eth";
+       device_type = "network";
+@@ -127,6 +134,7 @@
+       interrupts = <3 0>;
+       local-mac-address = [00 18 3e 02 e3 7f]; // This needs to change if more than one GenesysII on a VLAN
+       reg = <0x0 0x30000000 0x0 0x8000>;
++      phy-handle = <&ethernet_phy>;
+     };
+     xlnx_gpio: gpio@40000000 {
+       #gpio-cells = <2>;
+diff --git a/arch/riscv/dts/cv64a6_genesysII.dts b/arch/riscv/dts/cv64a6_genesysII.dts
+index 7899e8c1272..09d29b76d79 100644
+--- a/arch/riscv/dts/cv64a6_genesysII.dts
++++ b/arch/riscv/dts/cv64a6_genesysII.dts
+@@ -121,6 +121,13 @@
+       //   //interrupt-parent = <&PLIC0>;
+       // };
+     };
++    mdio {
++      #address-cells = <1>;
++      #size-cells = <0>;
++      ethernet_phy: ethernet-phy@0 { /* Realtek RTL8211E-VL */
++          reg = <0>;
++      };
++    };
+     eth: lowrisc-eth@30000000 {
+       compatible = "lowrisc-eth";
+       device_type = "network";
+@@ -128,6 +135,7 @@
+       interrupts = <3 0>;
+       local-mac-address = [00 18 3e 02 e3 7f]; // This needs to change if more than one GenesysII on a VLAN
+       reg = <0x0 0x30000000 0x0 0x8000>;
++      phy-handle = <&ethernet_phy>;
+     };
+     xlnx_gpio: gpio@40000000 {
+       #gpio-cells = <2>;
+diff --git a/configs/openhwgroup_cv32a6_genesysII_defconfig b/configs/openhwgroup_cv32a6_genesysII_defconfig
+index fe52d44c117..d17cdde042b 100644
+--- a/configs/openhwgroup_cv32a6_genesysII_defconfig
++++ b/configs/openhwgroup_cv32a6_genesysII_defconfig
+@@ -20,12 +20,18 @@ CONFIG_DISPLAY_CPUINFO=y
+ CONFIG_CMD_GPT=y
+ CONFIG_CMD_MMC=y
+ CONFIG_CMD_PART=y
++CONFIG_CMD_DHCP=y
++CONFIG_CMD_MDIO=y
++CONFIG_CMD_PING=y
+ CONFIG_CMD_FAT=y
++CONFIG_ENV_OVERWRITE=y
+ CONFIG_USE_BOOTFILE=y
+ CONFIG_BOOTFILE="fitImage.itb"
+ CONFIG_MMC=y
+ # CONFIG_MMC_WRITE is not set
+ CONFIG_MMC_SPI=y
++CONFIG_PHY_REALTEK=y
++CONFIG_LOWRISC_DIGILENT_100MHZ=y
+ CONFIG_SYS_NS16550=y
+ CONFIG_SPI=y
+ CONFIG_XILINX_SPI=y
+diff --git a/configs/openhwgroup_cv64a6_genesysII_defconfig b/configs/openhwgroup_cv64a6_genesysII_defconfig
+index 55c83bf98bb..c415d1c1c79 100644
+--- a/configs/openhwgroup_cv64a6_genesysII_defconfig
++++ b/configs/openhwgroup_cv64a6_genesysII_defconfig
+@@ -19,12 +19,18 @@ CONFIG_DISPLAY_CPUINFO=y
+ CONFIG_CMD_GPT=y
+ CONFIG_CMD_MMC=y
+ CONFIG_CMD_PART=y
++CONFIG_CMD_DHCP=y
++CONFIG_CMD_MDIO=y
++CONFIG_CMD_PING=y
+ CONFIG_CMD_FAT=y
++CONFIG_ENV_OVERWRITE=y
+ CONFIG_USE_BOOTFILE=y
+ CONFIG_BOOTFILE="fitImage.itb"
+ CONFIG_MMC=y
+ # CONFIG_MMC_WRITE is not set
+ CONFIG_MMC_SPI=y
++CONFIG_PHY_REALTEK=y
++CONFIG_LOWRISC_DIGILENT_100MHZ=y
+ CONFIG_SYS_NS16550=y
+ CONFIG_SPI=y
+ CONFIG_XILINX_SPI=y
+diff --git a/drivers/net/Kconfig b/drivers/net/Kconfig
+index 544e302d600..e4142894be7 100644
+--- a/drivers/net/Kconfig
++++ b/drivers/net/Kconfig
+@@ -1,6 +1,7 @@
+ source "drivers/net/phy/Kconfig"
+ source "drivers/net/pfe_eth/Kconfig"
+ source "drivers/net/fsl-mc/Kconfig"
++source "drivers/net/lowrisc/Kconfig"
+ 
+ config ETH
+ 	def_bool y
+diff --git a/drivers/net/Makefile b/drivers/net/Makefile
+index a3c3420898c..f7681164629 100644
+--- a/drivers/net/Makefile
++++ b/drivers/net/Makefile
+@@ -59,6 +59,7 @@ obj-$(CONFIG_HIGMACV300_ETH) += higmacv300.o
+ obj-$(CONFIG_KS8851_MLL) += ks8851_mll.o
+ obj-$(CONFIG_KSZ9477) += ksz9477.o
+ obj-$(CONFIG_LITEETH) += liteeth.o
++obj-$(CONFIG_LOWRISC_DIGILENT_100MHZ) += lowrisc/
+ obj-$(CONFIG_MACB) += macb.o
+ obj-$(CONFIG_MCFFEC) += mcffec.o mcfmii.o
+ obj-$(CONFIG_MDIO_IPQ4019) += mdio-ipq4019.o
+diff --git a/drivers/net/lowrisc/Kconfig b/drivers/net/lowrisc/Kconfig
+new file mode 100644
+index 00000000000..b44f525f247
+--- /dev/null
++++ b/drivers/net/lowrisc/Kconfig
+@@ -0,0 +1,21 @@
++#
++# Xilink device configuration
++#
++
++config NET_VENDOR_LOWRISC
++	bool "Lowrisc devices"
++	default y
++	depends on RISCV
++	help
++	  Enables the selection of network drivers from LowRISC.
++
++if NET_VENDOR_LOWRISC
++
++config LOWRISC_DIGILENT_100MHZ
++	tristate "Lowrisc 100MHz Ethernet Nexys4_DDR support"
++	depends on RISCV
++	select PHYLIB
++	help
++	  This driver supports the 100MHz Ethernet for Nexys4_DDR Digilent boards from Lowrisc.
++
++endif # NET_VENDOR_LOWRISC
+diff --git a/drivers/net/lowrisc/Makefile b/drivers/net/lowrisc/Makefile
+new file mode 100644
+index 00000000000..4920d44a7d6
+--- /dev/null
++++ b/drivers/net/lowrisc/Makefile
+@@ -0,0 +1,6 @@
++#
++# Makefile for the Lowrisc network device driver.
++#
++
++obj-y += lowrisc_100MHz.o
++CFLAGS_lowrisc_100MHz.o := -DDEBUG
+diff --git a/drivers/net/lowrisc/lowrisc_100MHz.c b/drivers/net/lowrisc/lowrisc_100MHz.c
+new file mode 100644
+index 00000000000..f9a7b61c1e3
+--- /dev/null
++++ b/drivers/net/lowrisc/lowrisc_100MHz.c
+@@ -0,0 +1,376 @@
++/*
++ * Lowrisc Ether100MHz Linux driver for the Lowrisc Ethernet 100MHz device.
++ *
++ * This is a u-boot port of the lowrisc Linux driver by Jonathan Richard
++ * Robert Kimmitt <jonathan@kimmitt.uk>
++ *
++ * Copyright 2023 Thales SA
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to
++ * deal in the Software without restriction, including without limitation the
++ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
++ * sell copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ * 
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
++ * IN THE SOFTWARE.
++ */
++
++#include <log.h>
++#include <net.h>
++#include <config.h>
++#include <dm.h>
++#include <console.h>
++#include <malloc.h>
++#include <asm/global_data.h>
++#include <asm/io.h>
++#include <phy.h>
++#include <miiphy.h>
++#include <fdtdec.h>
++#include <linux/delay.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
++#include <asm/io.h>
++#include "lowrisc_100MHz.h"
++
++#define DRIVER_AUTHOR "Kevin Eyssartier <kevin.eyssartier@thalesgroup.com>"
++#define DRIVER_DESC "ethernet driver for low_risc IP"
++#define DRIVER_NAME "lowrisc-eth"
++
++/* General Ethernet Definitions */
++#define XEL_ARP_PACKET_SIZE 28 /* Max ARP packet size */
++#define XEL_HEADER_IP_LENGTH_OFFSET 16 /* IP Length Offset */
++
++#define TX_TIMEOUT (60 * HZ) /* Tx timeout is 60 seconds. */
++
++/**
++ * struct net_local - Our private per device data
++ * @ndev:		instance of the network device
++ * @reset_lock:		lock used for synchronization
++ * @phy_dev:		pointer to the PHY device
++ * @phy_node:		pointer to the PHY device node
++ * @mii_bus:		pointer to the MII bus
++ * @last_link:		last link status
++ */
++struct net_local {
++	void __iomem *ioaddr;
++	u32 msg_enable;
++
++	int phyaddr;
++	struct phy_device *phy_dev;
++	struct mii_dev *mii_bus;
++	int last_duplex;
++	int last_carrier;
++
++	/* Spinlock */
++	uint32_t last_mdio_gpio;
++	int irq, num_tests, phy_addr;
++};
++
++static void inline eth_write(struct net_local *priv, size_t addr, int data)
++{
++	volatile uint64_t *eth_base = (volatile uint64_t *)(priv->ioaddr);
++	eth_base[addr >> 3] = data;
++}
++
++static void inline eth_copyout(struct net_local *priv, uint8_t *data, int len)
++{
++	int i, rnd = ((len - 1) | 7) + 1;
++	volatile uint64_t *eth_base = (volatile uint64_t *)(priv->ioaddr);
++	if (!(((size_t)data) & 7)) {
++		uint64_t *ptr = (uint64_t *)data;
++		for (i = 0; i < rnd / 8; i++)
++			eth_base[TXBUFF_OFFSET / 8 + i] = ptr[i];
++	} else // We can't unfortunately rely on the skb being word aligned
++	{
++		uint64_t notptr;
++		for (i = 0; i < rnd / 8; i++) {
++			memcpy(&notptr, data + (i << 3), sizeof(uint64_t));
++			eth_base[TXBUFF_OFFSET / 8 + i] = notptr;
++		}
++	}
++}
++
++static volatile inline int eth_read(struct net_local *priv, size_t addr)
++{
++	volatile uint64_t *eth_base = (volatile uint64_t *)(priv->ioaddr);
++	return eth_base[addr >> 3];
++}
++
++static inline void eth_copyin(struct net_local *priv, uint8_t *data, int len,
++			      int start)
++{
++	int i, rnd = ((len - 1) | 7) + 1;
++	volatile uint64_t *eth_base = (volatile uint64_t *)(priv->ioaddr);
++	if (!(((size_t)data) & 7)) {
++		uint64_t *ptr = (uint64_t *)data;
++		for (i = 0; i < rnd / 8; i++)
++			ptr[i] = eth_base[start + i];
++	} else // We can't unfortunately rely on the skb being word aligned
++	{
++		for (i = 0; i < rnd / 8; i++) {
++			uint64_t notptr = eth_base[start + i];
++			memcpy(data + (i << 3), &notptr, sizeof(uint64_t));
++		}
++	}
++}
++
++static int lowrisc_eth_miiphy_read(struct mii_dev *bus, int addr, int devad,
++				   int reg)
++{
++	u16 val = 0;
++
++	val = phy_read(bus->phymap[addr], devad, reg);
++	debug("lowrisc_eth: Read MII 0x%x, 0x%x, 0x%x\n", addr, reg, val);
++	return val;
++}
++
++static int lowrisc_eth_miiphy_write(struct mii_dev *bus, int addr, int devad,
++				    int reg, u16 value)
++{
++	debug("lowrisc_eth: Write MII 0x%x, 0x%x, 0x%x\n", addr, reg, value);
++	return phy_write(bus->phymap[addr], devad, reg, value);
++}
++
++/**
++ * lowrisc_update_address - Update the MAC address in the device
++ * @drvdata:	Pointer to the Ether100MHz device private data
++ * @address_ptr:Pointer to the MAC address (MAC address is a 48-bit value)
++ *
++ * Tx must be idle and Rx should be idle for deterministic results.
++ * It is recommended that this function should be called after the
++ * initialization and before transmission of any packets from the device.
++ * The MAC address can be programmed using any of the two transmit
++ * buffers (if configured).
++ */
++static void lowrisc_update_address(struct net_local *priv,
++				   unsigned char *address_ptr)
++{
++	uint32_t macaddr_lo, macaddr_hi;
++	memcpy(&macaddr_lo, address_ptr + 2, sizeof(uint32_t));
++	memcpy(&macaddr_hi, address_ptr + 0, sizeof(uint16_t));
++	eth_write(priv, MACLO_OFFSET, htonl(macaddr_lo));
++	eth_write(priv, MACHI_OFFSET, htons(macaddr_hi));
++	eth_write(priv, RFCS_OFFSET, 8); /* use 8 buffers */
++}
++
++/**
++ * lowrisc_read_mac_address - Read the MAC address in the device
++ * @drvdata:	Pointer to the Ether100MHz device private data
++ * @address_ptr:Pointer to the 6-byte buffer to receive the MAC address (MAC address is a 48-bit value)
++ *
++ * In lowrisc the starting value is programmed by the boot loader according to DIP switch [15:12]
++ */
++static void lowrisc_read_mac_address(struct net_local *priv, u8 *address_ptr)
++{
++	uint32_t macaddr_hi, macaddr_lo;
++	macaddr_hi = ntohs(eth_read(priv, MACHI_OFFSET) & MACHI_MACADDR_MASK);
++	macaddr_lo = ntohl(eth_read(priv, MACLO_OFFSET));
++	memcpy(address_ptr + 2, &macaddr_lo, sizeof(uint32_t));
++	memcpy(address_ptr + 0, &macaddr_hi, sizeof(uint16_t));
++}
++
++/**
++ * lowrisc_close - Close the network device
++ * @dev:	Pointer to the network device
++ *
++ * This function stops the Tx queue, disables interrupts and frees the IRQ for
++ * the Ether100MHz device.
++ * It also disconnects the phy device associated with the Ether100MHz device.
++ */
++static void lowrisc_close(struct udevice *ndev)
++{
++}
++
++/**
++ * lowrisc_open - Open the network device
++ * @dev:	Pointer to the network device
++ *
++ * This function sets the MAC address, requests an IRQ and enables interrupts
++ * for the Ether100MHz device and starts the Tx queue.
++ * It also connects to the phy device, if MDIO is included in Ether100MHz device.
++ */
++static int lowrisc_open(struct udevice *ndev)
++{
++	struct net_local *priv = dev_get_priv(ndev);
++	struct eth_pdata *pdata = dev_get_plat(ndev);
++
++	/* Program MAC from eth_pdata (filled from DT/env) */
++	if (is_valid_ethaddr(pdata->enetaddr))
++		lowrisc_update_address(priv, pdata->enetaddr);
++
++	if (priv->phy_dev) {
++		/* call phy driver */
++		phy_startup(priv->phy_dev);
++	}
++
++	return 0;
++}
++
++/**
++ * lowrisc_send - Transmit a frame
++ * @orig_skb:	Pointer to the socket buffer to be transmitted
++ * @dev:	Pointer to the network device
++ *
++ * This function checks if the Tx buffer of the Ether100MHz device is free to send
++ * data. If so, it fills the Tx buffer with data from socket buffer data,
++ * updates the stats and frees the socket buffer.
++ * Return:	0, always.
++ */
++static int lowrisc_send(struct udevice *ndev, void *ptr, int len)
++{
++	struct net_local *priv = dev_get_priv(ndev);
++	int rslt;
++	rslt = eth_read(priv, TPLR_OFFSET);
++	if (rslt & TPLR_BUSY_MASK)
++		return -1; // NETDEV_TX_BUSY
++	eth_copyout(priv, (uint8_t *)(ptr), len);
++	eth_write(priv, TPLR_OFFSET, len);
++
++	return 0; // NETDEV_TX_OK
++}
++
++uint8_t __attribute__((aligned(8))) framebuffer[ETH_FRAME_LEN + ETH_FCS_LEN];
++static int lowrisc_recv(struct udevice *dev, int flags, uchar **packetp)
++{
++	int rsr, len = 0, buf;
++	struct net_local *priv = dev_get_priv(dev);
++	rsr = eth_read(priv, RSR_OFFSET);
++	buf = rsr & RSR_RECV_FIRST_MASK;
++	/* Check if there is Rx Data available */
++	if (rsr & RSR_RECV_DONE_MASK) {
++		len = eth_read(priv, RPLR_OFFSET + ((buf & 7) << 3)) -
++		      4; /* discard FCS bytes ?? */
++		if ((len >= 60) && (len <= ETH_FRAME_LEN + ETH_FCS_LEN)) {
++			int start = RXBUFF_OFFSET / 8 + ((buf & 7) << 8);
++			eth_copyin(priv, framebuffer, len, start);
++		}
++
++		/* acknowledge, even if an error occurs */
++		eth_write(priv, RSR_OFFSET, ++buf);
++		*packetp = framebuffer;
++	}
++
++	return len;
++}
++
++/*
++ * Callback used by U-Boot core to program the hardware MAC address
++ * from eth_pdata->enetaddr (which in turn comes from ethaddr / DT).
++ */
++static int lowrisc_eth_write_hwaddr(struct udevice *dev)
++{
++	struct net_local *priv = dev_get_priv(dev);
++	struct eth_pdata *pdata = dev_get_plat(dev);
++
++	if (!is_valid_ethaddr(pdata->enetaddr))
++		return -EINVAL;
++
++	lowrisc_update_address(priv, pdata->enetaddr);
++	return 0;
++}
++
++static const struct eth_ops lowrisc_eth_ops = {
++	.start = lowrisc_open,
++	.send = lowrisc_send,
++	.recv = lowrisc_recv,
++	.stop = lowrisc_close,
++	.write_hwaddr = lowrisc_eth_write_hwaddr,
++};
++
++/**
++ * lowrisc_of_probe - Probe method for the Ether100MHz device.
++ * @ofdev:	Pointer to OF device structure
++ * @match:	Pointer to the structure used for matching a device
++ *
++ * This function probes for the Ether100MHz device in the device tree.
++ * It initializes the driver data structure and the hardware, sets the MAC
++ * address and registers the network device.
++ * It also registers a mii_bus for the Ether100MHz device, if MDIO is included
++ * in the device.
++ *
++ * Return:	0, if the driver is bound to the Ether100MHz device, or
++ *		a negative error if there is failure.
++ */
++static int lowrisc_100MHz_probe(struct udevice *dev)
++{
++	struct net_local *priv = dev_get_priv(dev);
++	int rc = 0;
++
++	priv->mii_bus = mdio_alloc();
++	priv->mii_bus->read = lowrisc_eth_miiphy_read;
++	priv->mii_bus->write = lowrisc_eth_miiphy_write;
++	priv->mii_bus->priv = priv;
++
++	rc = mdio_register_seq(priv->mii_bus, dev_seq(dev));
++	if (rc)
++		return rc;
++
++	return 0;
++}
++
++int lowrisc_100MHz_unregister(struct udevice *dev)
++{
++	struct net_local *priv = dev_get_priv(dev);
++
++	if (priv->phy_dev) {
++		// call phy driver
++		phy_shutdown(priv->phy_dev);
++	}
++
++	free(priv->phy_dev);
++	mdio_unregister(priv->mii_bus);
++	mdio_free(priv->mii_bus);
++	return 0;
++}
++
++static int lowrisc_eth_of_to_plat(struct udevice *dev)
++{
++	struct eth_pdata *pdata = dev_get_plat(dev);
++	struct net_local *emaclite = dev_get_priv(dev);
++	int offset = 0;
++
++	pdata->iobase = dev_read_addr(dev);
++	emaclite->ioaddr = (void *)pdata->iobase;
++
++	emaclite->phyaddr = -1;
++
++	offset = fdtdec_lookup_phandle(gd->fdt_blob, dev_of_offset(dev),
++				       "phy-handle");
++	if (offset > 0)
++		emaclite->phyaddr =
++			fdtdec_get_int(gd->fdt_blob, offset, "reg", -1);
++
++	printf("LOWRISC-ETH: %lx, phyaddr %d\n", (ulong)emaclite->ioaddr,
++	       emaclite->phyaddr);
++
++	/* Use current HW MAC as default (can be overridden by ethaddr) */
++	lowrisc_read_mac_address(emaclite, pdata->enetaddr);
++
++	return 0;
++}
++
++static const struct udevice_id lowrisc_eth_ids[] = { { .compatible =
++							       DRIVER_NAME },
++						     {} };
++
++U_BOOT_DRIVER(lowrisc_eth) = {
++	.name = DRIVER_NAME,
++	.id = UCLASS_ETH,
++	.of_match = lowrisc_eth_ids,
++	.of_to_plat = lowrisc_eth_of_to_plat,
++	.probe = lowrisc_100MHz_probe,
++	.remove = lowrisc_100MHz_unregister,
++	.ops = &lowrisc_eth_ops,
++	.priv_auto = sizeof(struct net_local),
++	.plat_auto = sizeof(struct eth_pdata),
++};
+diff --git a/drivers/net/lowrisc/lowrisc_100MHz.h b/drivers/net/lowrisc/lowrisc_100MHz.h
+new file mode 100644
+index 00000000000..abfd0b5762f
+--- /dev/null
++++ b/drivers/net/lowrisc/lowrisc_100MHz.h
+@@ -0,0 +1,55 @@
++// See LICENSE for license details.
++
++#ifndef ETH_HEADER_H
++#define ETH_HEADER_H
++
++/* Register offsets for the LowRISC Ethernet Core */
++
++/* Register offsets (in bytes) for the LowRISC Core */
++#define TXBUFF_OFFSET       0x1000          /* Transmit Buffer */
++
++#define MACLO_OFFSET        0x0800          /* MAC address low 32-bits */
++#define MACHI_OFFSET        0x0808          /* MAC address high 16-bits and MAC ctrl */
++#define TPLR_OFFSET         0x0810          /* Tx packet length */
++#define TFCS_OFFSET         0x0818          /* Tx frame check sequence register */
++#define MDIOCTRL_OFFSET     0x0820          /* MDIO Control Register */
++#define RFCS_OFFSET         0x0828          /* Rx frame check sequence register(read) and last register(write) */
++#define RSR_OFFSET          0x0830          /* Rx status and reset register */
++#define RBAD_OFFSET         0x0838          /* Rx bad frame and bad fcs register arrays */
++#define RPLR_OFFSET         0x0840          /* Rx packet length register array */
++
++#define RXBUFF_OFFSET       0x4000          /* Receive Buffer */
++
++/* MAC Ctrl Register (MACHI) Bit Masks */
++#define MACHI_MACADDR_MASK    0x0000FFFF     /* MAC high 16-bits mask */
++#define MACHI_COOKED_MASK     0x00010000     /* obsolete flag */
++#define MACHI_LOOPBACK_MASK   0x00020000     /* Rx loopback packets */
++#define MACHI_ALLPKTS_MASK    0x00400000     /* Rx all packets (promiscuous mode) */
++#define MACHI_IRQ_EN          0x00800000     /* Rx packet interrupt enable */
++
++/* MDIO Control Register Bit Masks */
++#define MDIOCTRL_MDIOCLK_MASK 0x00000001    /* MDIO Clock Mask */
++#define MDIOCTRL_MDIOOUT_MASK 0x00000002    /* MDIO Output Mask */
++#define MDIOCTRL_MDIOOEN_MASK 0x00000004    /* MDIO Output Enable Mask, 3-state enable, high=input, low=output */
++#define MDIOCTRL_MDIORST_MASK 0x00000008    /* MDIO Input Mask */
++#define MDIOCTRL_MDIOIN_MASK  0x00000008    /* MDIO Input Mask */
++
++/* Transmit Status Register (TPLR) Bit Masks */
++#define TPLR_FRAME_ADDR_MASK  0x0FFF0000     /* Tx frame address */
++#define TPLR_PACKET_LEN_MASK  0x00000FFF     /* Tx packet length */
++#define TPLR_BUSY_MASK        0x80000000     /* Tx busy mask */
++
++/* Receive Status Register (RSR) */
++#define RSR_RECV_FIRST_MASK   0x0000000F      /* first available buffer (static) */
++#define RSR_RECV_NEXT_MASK    0x000000F0      /* current rx buffer (volatile) */
++#define RSR_RECV_LAST_MASK    0x00000F00      /* last available rx buffer (static) */
++#define RSR_RECV_DONE_MASK    0x00001000      /* Rx complete */
++#define RSR_RECV_IRQ_MASK     0x00002000      /* Rx irq bit */
++
++/* General Ethernet Definitions */
++#define HEADER_OFFSET               12      /* Offset to length field */
++#define HEADER_SHIFT                16      /* Shift value for length */
++#define ARP_PACKET_SIZE             28      /* Max ARP packet size */
++#define HEADER_IP_LENGTH_OFFSET     16      /* IP Length Offset */
++
++#endif
+\ No newline at end of file
+-- 
+2.39.5
+
