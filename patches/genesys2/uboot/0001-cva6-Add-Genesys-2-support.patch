@@ -1,6 +1,6 @@
-From a35b3706bb7a30eb7839fcd9f877c1dc768a789a Mon Sep 17 00:00:00 2001
+From 3d0d3409c6c8ef9fff7416402398dbcbba3d8ddb Mon Sep 17 00:00:00 2001
 From: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
-Date: Tue, 16 Nov 2021 23:47:15 +0100
+Date: Thu, 26 Mar 2026 17:33:49 +0100
 Subject: [PATCH] cva6: Add Genesys 2 support
 
 based on https://github.com/openhwgroup/u-boot/tree/920075ecfa679976fde9beaa718036afe3e69d52
@@ -9,8 +9,8 @@ Signed-off-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
 ---
  arch/riscv/Kconfig                            |   4 +
  arch/riscv/dts/Makefile                       |   1 +
- arch/riscv/dts/cv32a6_genesysII.dts           | 145 ++++++++++++++++++
- arch/riscv/dts/cv64a6_genesysII.dts           | 145 ++++++++++++++++++
+ arch/riscv/dts/cv32a6_genesysII.dts           | 148 +++++++++++++++++
+ arch/riscv/dts/cv64a6_genesysII.dts           | 149 ++++++++++++++++++
  board/openhwgroup/cva6_genesysII/Kconfig      |  30 ++++
  board/openhwgroup/cva6_genesysII/Makefile     |   1 +
  board/openhwgroup/cva6_genesysII/cva6.c       |   9 ++
@@ -18,7 +18,7 @@ Signed-off-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
  .../openhwgroup_cv64a6_genesysII_defconfig    |  31 ++++
  ...openhwgroup_cv64a6_genesysII_spl_defconfig |  44 ++++++
  include/configs/openhwgroup_cva6_genesysII.h  |   8 +
- 11 files changed, 451 insertions(+)
+ 11 files changed, 458 insertions(+)
  create mode 100644 arch/riscv/dts/cv32a6_genesysII.dts
  create mode 100644 arch/riscv/dts/cv64a6_genesysII.dts
  create mode 100644 board/openhwgroup/cva6_genesysII/Kconfig
@@ -30,7 +30,7 @@ Signed-off-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
  create mode 100644 include/configs/openhwgroup_cva6_genesysII.h
 
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 04eb0e6f23c..a68550172ef 100644
+index 265b5320777..7b587197526 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
 @@ -43,6 +43,9 @@ config TARGET_SIFIVE_UNMATCHED
@@ -52,10 +52,10 @@ index 04eb0e6f23c..a68550172ef 100644
  # platform-specific options below
  source "arch/riscv/cpu/andes/Kconfig"
 diff --git a/arch/riscv/dts/Makefile b/arch/riscv/dts/Makefile
-index a637727b76b..c7ee37731a9 100644
+index 9b347fc3b50..f1b261cf5cb 100644
 --- a/arch/riscv/dts/Makefile
 +++ b/arch/riscv/dts/Makefile
-@@ -17,6 +17,7 @@ dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv32.dtb
+@@ -16,6 +16,7 @@ dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv32.dtb
  dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-mbv64.dtb
  dtb-$(CONFIG_TARGET_XILINX_MBV) += xilinx-binman.dtb
  dtb-$(CONFIG_TARGET_ASPEED_AST2700_IBEX) += ast2700-ibex.dtb
@@ -65,17 +65,17 @@ index a637727b76b..c7ee37731a9 100644
  
 diff --git a/arch/riscv/dts/cv32a6_genesysII.dts b/arch/riscv/dts/cv32a6_genesysII.dts
 new file mode 100644
-index 00000000000..41640be51f0
+index 00000000000..796bbd37c29
 --- /dev/null
 +++ b/arch/riscv/dts/cv32a6_genesysII.dts
-@@ -0,0 +1,145 @@
+@@ -0,0 +1,148 @@
 +/dts-v1/;
 +
 +/ {
 +  #address-cells = <2>;
 +  #size-cells = <2>;
-+  compatible = "eth,ariane-bare-dev";
-+  model = "eth,ariane-bare";
++  compatible = "eth,cva6-bare-dev";
++  model = "eth,cva6-bare";
 +  chosen {
 +    stdout-path = "/soc/uart@10000000:115200";
 +    //tick-timer =  "/cpus/cpu@0";
@@ -89,8 +89,11 @@ index 00000000000..41640be51f0
 +      device_type = "cpu";
 +      reg = <0>;
 +      status = "okay";
-+      compatible = "eth, ariane", "riscv";
-+      riscv,isa = "rv32ima";
++      compatible = "eth, cva6", "riscv";
++      riscv,base = "rv32i";
++      riscv,isa-extensions = "i", "m", "a",
++                             "zifencei", "zicsr",
++                             "zicntr", "zihpm";
 +      mmu-type = "riscv,sv32";
 +      tlb-split;
 +      // HLIC - hart local interrupt controller
@@ -116,7 +119,7 @@ index 00000000000..41640be51f0
 +  L26: soc {
 +    #address-cells = <2>;
 +    #size-cells = <2>;
-+    compatible = "eth,ariane-bare-soc", "simple-bus";
++    compatible = "eth,cva6-bare-soc", "simple-bus";
 +    ranges;
 +    clint@2000000 {
 +      compatible = "riscv,clint0";
@@ -216,17 +219,17 @@ index 00000000000..41640be51f0
 +};
 diff --git a/arch/riscv/dts/cv64a6_genesysII.dts b/arch/riscv/dts/cv64a6_genesysII.dts
 new file mode 100644
-index 00000000000..b699c7bbb04
+index 00000000000..7899e8c1272
 --- /dev/null
 +++ b/arch/riscv/dts/cv64a6_genesysII.dts
-@@ -0,0 +1,145 @@
+@@ -0,0 +1,149 @@
 +/dts-v1/;
 +
 +/ {
 +  #address-cells = <2>;
 +  #size-cells = <2>;
-+  compatible = "eth,ariane-bare-dev";
-+  model = "eth,ariane-bare";
++  compatible = "eth,cva6-bare-dev";
++  model = "eth,cva6-bare";
 +  chosen {
 +    stdout-path = "/soc/uart@10000000:115200";
 +    //tick-timer =  "/cpus/cpu@0";
@@ -240,8 +243,12 @@ index 00000000000..b699c7bbb04
 +      device_type = "cpu";
 +      reg = <0>;
 +      status = "okay";
-+      compatible = "eth, ariane", "riscv";
-+      riscv,isa = "rv64imafdc";
++      compatible = "eth, cva6", "riscv";
++      riscv,base = "rv64i";
++      riscv,isa-extensions = "i", "m", "a", "f", "d", "c", "b",
++                             "zifencei", "zicsr",
++                             "zicntr", "zihpm",
++                             "zbc", "zcb", "zkn";
 +      mmu-type = "riscv,sv39";
 +      tlb-split;
 +      // HLIC - hart local interrupt controller
@@ -267,7 +274,7 @@ index 00000000000..b699c7bbb04
 +  L26: soc {
 +    #address-cells = <2>;
 +    #size-cells = <2>;
-+    compatible = "eth,ariane-bare-soc", "simple-bus";
++    compatible = "eth,cva6-bare-soc", "simple-bus";
 +    ranges;
 +    clint@2000000 {
 +      compatible = "riscv,clint0";
