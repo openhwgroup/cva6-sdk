@@ -14,7 +14,7 @@
 	url = https://github.com/pulp-platform/vitetris.git
 [submodule "u-boot"]
 	path = u-boot
-	url = https://github.com:jrrk2/u-boot.git
+	url = https://github.com/jrrk2/u-boot.git
 	branch = cva6
 [submodule "opensbi"]
 	path = opensbi
