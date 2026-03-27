@@ -62,8 +62,8 @@ Tested with the following CVA6 configs:
 - **./blobs/**: Contains pre-built binary files. For example, `altera-u-boot.itb`, which is a flattened image tree binary required by the Agilex7 board by its Arm processor. It was built from the offical [Altera repository](https://github.com/altera-fpga/u-boot-socfpga). Execute `buildroot/output/host/bin/mkimage -l blobs/altera-u-boot.itb` to list its content.
 - **./br2-ext-tree/**: Extension tree for buildroot. This directory contains packages which are not part of the official buildroot package list.
 - **./buildroot/**: The mainline buildroot repository without any custom changes. It is a git submodule.
-- **./configs/**: Contains config files including `genimage.cfg` which defines the structure and content of the final image `sdcard.img`..
-- **./patches/**: Contains patches used by buildroot to apply to software components. It includes the Linux driver for the [open-source Ethernet media access controller](https://github.com/lowRISC/ariane-ethernet) from lowRISC required for ethernet to work under Linux in the CVA6. And patches to add CVA6 support to U-Boot.
+- **./configs/**: Contains config files including `genimage.cfg` which defines the structure and content of the final image `sdcard.img`.
+- **./patches/**: Contains patches for components required to them on the selected board.
 - **./rootfs/**: The filesystem overlay. Put files here if you want to use them on your target system. Contains key files to prevent them having to be generated on each boot. Explained in further detail below.
 - **./Dockerfile**: Dockerfile to build the image. Explained in further detail below.
 - **./fitImage.its.template**: This defines the content of the [Flat Image Tree (FIT)](https://docs.u-boot.org/en/stable/usage/fit/howto.html) used by U-Boot to package the boot components it is meant to read and launch. The FIT image is part of the `sdcard.img`.

@@ -1,4 +1,4 @@
-From 6248abdaa60e70bf679e5d9f8fa680d9d58597ad Mon Sep 17 00:00:00 2001
+From 24772a7ab42c244bbbc8f844b177983ed2d0dd6a Mon Sep 17 00:00:00 2001
 From: Kevin Eyssartier <kevin.eyssartier@thalesgroup.com>
 Date: Thu, 26 Mar 2026 17:49:38 +0100
 Subject: [PATCH 2/2] Add LowRisc Ethernet driver
@@ -11,120 +11,18 @@ Subject: [PATCH 2/2] Add LowRisc Ethernet driver
 
 Signed-off-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
 ---
- arch/riscv/dts/cv32a6_genesysII.dts           |   8 +
- arch/riscv/dts/cv64a6_genesysII.dts           |   8 +
- .../openhwgroup_cv32a6_genesysII_defconfig    |   6 +
- .../openhwgroup_cv64a6_genesysII_defconfig    |   6 +
- drivers/net/Kconfig                           |   1 +
- drivers/net/Makefile                          |   1 +
- drivers/net/lowrisc/Kconfig                   |  21 +
- drivers/net/lowrisc/Makefile                  |   6 +
- drivers/net/lowrisc/lowrisc_100MHz.c          | 376 ++++++++++++++++++
- drivers/net/lowrisc/lowrisc_100MHz.h          |  55 +++
- 10 files changed, 488 insertions(+)
+ drivers/net/Kconfig                  |   1 +
+ drivers/net/Makefile                 |   1 +
+ drivers/net/lowrisc/Kconfig          |  21 ++
+ drivers/net/lowrisc/Makefile         |   6 +
+ drivers/net/lowrisc/lowrisc_100MHz.c | 376 +++++++++++++++++++++++++++
+ drivers/net/lowrisc/lowrisc_100MHz.h |  55 ++++
+ 6 files changed, 460 insertions(+)
  create mode 100644 drivers/net/lowrisc/Kconfig
  create mode 100644 drivers/net/lowrisc/Makefile
  create mode 100644 drivers/net/lowrisc/lowrisc_100MHz.c
  create mode 100644 drivers/net/lowrisc/lowrisc_100MHz.h
 
-diff --git a/arch/riscv/dts/cv32a6_genesysII.dts b/arch/riscv/dts/cv32a6_genesysII.dts
-index 796bbd37c29..f52e946611a 100644
---- a/arch/riscv/dts/cv32a6_genesysII.dts
-+++ b/arch/riscv/dts/cv32a6_genesysII.dts
-@@ -120,6 +120,13 @@
-       //   //interrupt-parent = <&PLIC0>;
-       // };
-     };
-+    mdio {
-+      #address-cells = <1>;
-+      #size-cells = <0>;
-+      ethernet_phy: ethernet-phy@0 { /* Realtek RTL8211E-VL */
-+          reg = <0>;
-+      };
-+    };
-     eth: lowrisc-eth@30000000 {
-       compatible = "lowrisc-eth";
-       device_type = "network";
-@@ -127,6 +134,7 @@
-       interrupts = <3 0>;
-       local-mac-address = [00 18 3e 02 e3 7f]; // This needs to change if more than one GenesysII on a VLAN
-       reg = <0x0 0x30000000 0x0 0x8000>;
-+      phy-handle = <&ethernet_phy>;
-     };
-     xlnx_gpio: gpio@40000000 {
-       #gpio-cells = <2>;
-diff --git a/arch/riscv/dts/cv64a6_genesysII.dts b/arch/riscv/dts/cv64a6_genesysII.dts
-index 7899e8c1272..09d29b76d79 100644
---- a/arch/riscv/dts/cv64a6_genesysII.dts
-+++ b/arch/riscv/dts/cv64a6_genesysII.dts
-@@ -121,6 +121,13 @@
-       //   //interrupt-parent = <&PLIC0>;
-       // };
-     };
-+    mdio {
-+      #address-cells = <1>;
-+      #size-cells = <0>;
-+      ethernet_phy: ethernet-phy@0 { /* Realtek RTL8211E-VL */
-+          reg = <0>;
-+      };
-+    };
-     eth: lowrisc-eth@30000000 {
-       compatible = "lowrisc-eth";
-       device_type = "network";
-@@ -128,6 +135,7 @@
-       interrupts = <3 0>;
-       local-mac-address = [00 18 3e 02 e3 7f]; // This needs to change if more than one GenesysII on a VLAN
-       reg = <0x0 0x30000000 0x0 0x8000>;
-+      phy-handle = <&ethernet_phy>;
-     };
-     xlnx_gpio: gpio@40000000 {
-       #gpio-cells = <2>;
-diff --git a/configs/openhwgroup_cv32a6_genesysII_defconfig b/configs/openhwgroup_cv32a6_genesysII_defconfig
-index fe52d44c117..d17cdde042b 100644
---- a/configs/openhwgroup_cv32a6_genesysII_defconfig
-+++ b/configs/openhwgroup_cv32a6_genesysII_defconfig
-@@ -20,12 +20,18 @@ CONFIG_DISPLAY_CPUINFO=y
- CONFIG_CMD_GPT=y
- CONFIG_CMD_MMC=y
- CONFIG_CMD_PART=y
-+CONFIG_CMD_DHCP=y
-+CONFIG_CMD_MDIO=y
-+CONFIG_CMD_PING=y
- CONFIG_CMD_FAT=y
-+CONFIG_ENV_OVERWRITE=y
- CONFIG_USE_BOOTFILE=y
- CONFIG_BOOTFILE="fitImage.itb"
- CONFIG_MMC=y
- # CONFIG_MMC_WRITE is not set
- CONFIG_MMC_SPI=y
-+CONFIG_PHY_REALTEK=y
-+CONFIG_LOWRISC_DIGILENT_100MHZ=y
- CONFIG_SYS_NS16550=y
- CONFIG_SPI=y
- CONFIG_XILINX_SPI=y
-diff --git a/configs/openhwgroup_cv64a6_genesysII_defconfig b/configs/openhwgroup_cv64a6_genesysII_defconfig
-index 55c83bf98bb..c415d1c1c79 100644
---- a/configs/openhwgroup_cv64a6_genesysII_defconfig
-+++ b/configs/openhwgroup_cv64a6_genesysII_defconfig
-@@ -19,12 +19,18 @@ CONFIG_DISPLAY_CPUINFO=y
- CONFIG_CMD_GPT=y
- CONFIG_CMD_MMC=y
- CONFIG_CMD_PART=y
-+CONFIG_CMD_DHCP=y
-+CONFIG_CMD_MDIO=y
-+CONFIG_CMD_PING=y
- CONFIG_CMD_FAT=y
-+CONFIG_ENV_OVERWRITE=y
- CONFIG_USE_BOOTFILE=y
- CONFIG_BOOTFILE="fitImage.itb"
- CONFIG_MMC=y
- # CONFIG_MMC_WRITE is not set
- CONFIG_MMC_SPI=y
-+CONFIG_PHY_REALTEK=y
-+CONFIG_LOWRISC_DIGILENT_100MHZ=y
- CONFIG_SYS_NS16550=y
- CONFIG_SPI=y
- CONFIG_XILINX_SPI=y
 diff --git a/drivers/net/Kconfig b/drivers/net/Kconfig
 index 544e302d600..e4142894be7 100644
 --- a/drivers/net/Kconfig

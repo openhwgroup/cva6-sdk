@@ -22,6 +22,7 @@ clean:
 updatedefconfigs:
 	$(MAKE) -C buildroot BR2_EXTERNAL="$(buildroot_external_tree_path)" BR2_DEFCONFIG=$(buildroot_defconfig_path) defconfig
 	$(MAKE) -C buildroot BR2_DEFCONFIG=$(buildroot_defconfig_path) savedefconfig
+	$(MAKE) -C buildroot uboot-update-defconfig
 	$(MAKE) -C buildroot linux-configure
 	$(MAKE) -C buildroot linux-update-defconfig
 

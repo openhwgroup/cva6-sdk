@@ -1,7 +1,7 @@
-From a8df12169a01b1cad564285d2aae970949b4c7b9 Mon Sep 17 00:00:00 2001
+From eb6e15ce3b31a081b9b16a4b8f920d9e71c40cc9 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Michael=20Wei=C3=9F?= <michael.weiss@aisec.fraunhofer.de>
 Date: Thu, 11 Dec 2025 21:14:11 +0100
-Subject: [PATCH 2/7] cva6: agilex7: updated Kconfig for current u-boot
+Subject: [PATCH 2/2] cva6: agilex7: updated Kconfig for current u-boot
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -11,8 +11,9 @@ in board/openhwgroup/cva6_agilex7/Kconfig.
 
 Signed-off-by: Michael Weiß <michael.weiss@aisec.fraunhofer.de>
 ---
- board/openhwgroup/cva6_agilex7/Kconfig | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ board/openhwgroup/cva6_agilex7/Kconfig     |  2 +-
+ include/configs/openhwgroup_cva6_agilex7.h | 11 +----------
+ 2 files changed, 2 insertions(+), 11 deletions(-)
 
 diff --git a/board/openhwgroup/cva6_agilex7/Kconfig b/board/openhwgroup/cva6_agilex7/Kconfig
 index 059c58e083d..6bcd7474818 100644
@@ -27,6 +28,28 @@ index 059c58e083d..6bcd7474818 100644
  	default 0x80200000 if SPL
  	default 0x80000000 if !RISCV_SMODE
  	default 0x80200000 if RISCV_SMODE && ARCH_RV64I
+diff --git a/include/configs/openhwgroup_cva6_agilex7.h b/include/configs/openhwgroup_cva6_agilex7.h
+index 1c6640064bf..cb261d87b00 100644
+--- a/include/configs/openhwgroup_cva6_agilex7.h
++++ b/include/configs/openhwgroup_cva6_agilex7.h
+@@ -3,16 +3,7 @@
+ 
+ #include <linux/sizes.h>
+ 
+-#define CONFIG_SYS_SDRAM_BASE		0x80000000
+-#define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_2M)
+-
+-#define CONFIG_SYS_LOAD_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_2M)
+-
+-#define CONFIG_SYS_MALLOC_LEN       SZ_8M
+-#define CONFIG_SYS_BOOTM_LEN        SZ_64M
+-
+-#define CONFIG_SYS_MAX_FLASH_BANKS 1
+-#define CONFIG_SYS_FLASH_BASE 0x0
++#define CFG_SYS_SDRAM_BASE		0x80000000
+ 
+ #define AGILEX7 1
+ #endif
 -- 
 2.39.5
 
