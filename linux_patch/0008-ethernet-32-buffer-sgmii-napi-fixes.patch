@@ -1,0 +1,86 @@
+diff -u -r ./drivers/net/ethernet/lowrisc/lowrisc_100MHz.c /home/jonathan/cva6-sdk-patched/buildroot/output/build/linux-v5.10.7/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c
+--- ./drivers/net/ethernet/lowrisc/lowrisc_100MHz.c	2026-03-27 06:37:36.864590845 +0000
++++ /home/jonathan/cva6-sdk-patched/buildroot/output/build/linux-v5.10.7/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c	2026-03-26 16:15:21.684095308 +0000
+@@ -175,7 +175,7 @@
+   mutex_lock(&priv->lock);
+   eth_write(priv, MACLO_OFFSET, htonl(macaddr_lo));
+   eth_write(priv, MACHI_OFFSET, htons(macaddr_hi));
+-  eth_write(priv, RFCS_OFFSET, 8); /* use 8 buffers */
++  eth_write(priv, RFCS_OFFSET, 31); /* use 32 buffers */
+   mutex_unlock(&priv->lock);
+ }
+ 
+@@ -484,7 +484,7 @@
+   /* Check if there is Rx Data available */
+   while ((rsr & RSR_RECV_DONE_MASK) && (rx_count < budget))
+     {
+-      int len = eth_read(priv, RPLR_OFFSET+((buf&7)<<3)) - 4; /* discard FCS bytes ?? */
++      int len = eth_read(priv, RPLR_OFFSET+((buf&31)<<3)) - 4; /* discard FCS bytes ?? */
+       if ((len >= 60) && (len <= ETH_FRAME_LEN + ETH_FCS_LEN))
+ 	{
+ 	  int rnd = ((len-1)|7)+1; /* round to a multiple of 8 */
+@@ -496,7 +496,7 @@
+ 	    }
+ 	  else
+ 	    {
+-	      int start = RXBUFF_OFFSET/8 + ((buf&7)<<8);
++	      int start = RXBUFF_OFFSET/8 + ((buf&31)<<8);
+               skb_put(skb, len);	/* Tell the skb how much data we got */
+ 	      
+               eth_copyin(priv, skb->data, len, start);
+@@ -516,13 +516,13 @@
+ 
+   if (rsr & RSR_RECV_DONE_MASK)
+     {
+-      return 1;
++      return rx_count;
+     }
+   else
+     {
+       napi_complete_done(&priv->napi, rx_count);
+       eth_enable_irq(priv);
+-      return 0;
++      return rx_count;
+     }
+ }
+ 
+@@ -625,6 +625,7 @@
+   /* We're ready to go */
+   napi_enable(&priv->napi);
+   netif_start_queue(ndev);
++  netif_carrier_on(ndev);
+ 
+   /* enable the irq */
+   eth_enable_irq(priv);
+diff -u -r ./drivers/net/ethernet/lowrisc/lowrisc_100MHz.h /home/jonathan/cva6-sdk-patched/buildroot/output/build/linux-v5.10.7/drivers/net/ethernet/lowrisc/lowrisc_100MHz.h
+--- ./drivers/net/ethernet/lowrisc/lowrisc_100MHz.h	2026-03-27 06:37:36.844739124 +0000
++++ /home/jonathan/cva6-sdk-patched/buildroot/output/build/linux-v5.10.7/drivers/net/ethernet/lowrisc/lowrisc_100MHz.h	2026-03-26 10:08:52.400015633 +0000
+@@ -16,9 +16,9 @@
+ #define RFCS_OFFSET         0x0828          /* Rx frame check sequence register(read) and last register(write) */
+ #define RSR_OFFSET          0x0830          /* Rx status and reset register */
+ #define RBAD_OFFSET         0x0838          /* Rx bad frame and bad fcs register arrays */
+-#define RPLR_OFFSET         0x0840          /* Rx packet length register array */
++#define RPLR_OFFSET         0x0C00          /* Rx packet length register array (32 entries) */
+ 
+-#define RXBUFF_OFFSET       0x4000          /* Receive Buffer */
++#define RXBUFF_OFFSET       0x10000         /* Receive Buffer (64KB, 32 x 2KB) */
+ 
+ /* MAC Ctrl Register (MACHI) Bit Masks */
+ #define MACHI_MACADDR_MASK    0x0000FFFF     /* MAC high 16-bits mask */
+@@ -40,11 +40,11 @@
+ #define TPLR_BUSY_MASK        0x80000000     /* Tx busy mask */
+ 
+ /* Receive Status Register (RSR) */
+-#define RSR_RECV_FIRST_MASK   0x0000000F      /* first available buffer (static) */
+-#define RSR_RECV_NEXT_MASK    0x000000F0      /* current rx buffer (volatile) */
+-#define RSR_RECV_LAST_MASK    0x00000F00      /* last available rx buffer (static) */
+-#define RSR_RECV_DONE_MASK    0x00001000      /* Rx complete */
+-#define RSR_RECV_IRQ_MASK     0x00002000      /* Rx irq bit */
++#define RSR_RECV_FIRST_MASK   0x0000001F      /* first available buffer [4:0] */
++#define RSR_RECV_NEXT_MASK    0x000003E0      /* current rx buffer [9:5] */
++#define RSR_RECV_LAST_MASK    0x00007C00      /* last available rx buffer [14:10] */
++#define RSR_RECV_DONE_MASK    0x00008000      /* Rx complete [15] */
++#define RSR_RECV_IRQ_MASK     0x00010000      /* Rx irq bit [16] */
+ 
+ /* General Ethernet Definitions */
+ #define HEADER_OFFSET               12      /* Offset to length field */

@@ -25,7 +25,8 @@ sbi-mk += PLATFORM_RISCV_ISA=rv64imafdc PLATFORM_RISCV_XLEN=64
 endif
 
 # U-Boot options
-BOARD = genesysII
+BOARD = vc707
+# BOARD = genesysII
 # BOARD = agilex7
 ifeq ($(XLEN), 32)
 UIMAGE_LOAD_ADDRESS := 0x80400000

@@ -1,0 +1,13 @@
+diff -u -r ./drivers/net/ethernet/lowrisc/lowrisc_100MHz.c /home/jonathan/cva6-sdk-patched/buildroot/output/build/linux-v5.10.7/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c
+--- ./drivers/net/ethernet/lowrisc/lowrisc_100MHz.c	2026-03-27 06:52:28.534107651 +0000
++++ /home/jonathan/cva6-sdk-patched/buildroot/output/build/linux-v5.10.7/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c	2026-03-26 16:15:21.684095308 +0000
+@@ -777,7 +777,8 @@
+ 	/* Set the MAC address in the Ether100MHz device */
+ 	lowrisc_update_address(priv, ndev->dev_addr);
+ 
+-	lowrisc_mii_init(ndev);
++	/* Skip MII init when MDIO is not connected (e.g. SGMII via PCS/PMA) */
++	/* lowrisc_mii_init(ndev); */
+ 
+ 	/* Finally, register the device */
+ 	rc = register_netdev(ndev);
