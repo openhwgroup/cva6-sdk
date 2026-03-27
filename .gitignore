@@ -1,10 +1,2 @@
-install*
-build
-*.elf
-rootfs/tetris
-
-riscv-gnu-toolchain/build
-riscv-fesvr/build
-riscv-isa-sim/build
-riscv-pk/build
-riscv-tests/build
+/install*/
+/fitImage.its

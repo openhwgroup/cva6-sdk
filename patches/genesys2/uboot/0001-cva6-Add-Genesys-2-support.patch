@@ -1,0 +1,117 @@
+From 2068a22c88ab20b8964dd7f0fd0f07cbc265ee1a Mon Sep 17 00:00:00 2001
+From: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
+Date: Thu, 26 Mar 2026 17:33:49 +0100
+Subject: [PATCH 1/2] cva6: Add Genesys 2 support
+
+based on https://github.com/openhwgroup/u-boot/tree/920075ecfa679976fde9beaa718036afe3e69d52
+
+Signed-off-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
+---
+ arch/riscv/Kconfig                           |  4 +++
+ board/openhwgroup/cva6_genesysII/Kconfig     | 30 ++++++++++++++++++++
+ board/openhwgroup/cva6_genesysII/Makefile    |  1 +
+ board/openhwgroup/cva6_genesysII/cva6.c      |  9 ++++++
+ include/configs/openhwgroup_cva6_genesysII.h |  8 ++++++
+ 5 files changed, 52 insertions(+)
+ create mode 100644 board/openhwgroup/cva6_genesysII/Kconfig
+ create mode 100644 board/openhwgroup/cva6_genesysII/Makefile
+ create mode 100644 board/openhwgroup/cva6_genesysII/cva6.c
+ create mode 100644 include/configs/openhwgroup_cva6_genesysII.h
+
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 265b5320777..7b587197526 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -43,6 +43,9 @@ config TARGET_SIFIVE_UNMATCHED
+ 	bool "Support SiFive Unmatched Board"
+ 	select SYS_CACHE_SHIFT_6
+ 
++config TARGET_OPENHWGROUP_CVA6_GENESYSII
++	bool "Target cva6 architecture on genesysII board"
++
+ config TARGET_SIPEED_MAIX
+ 	bool "Support Sipeed Maix Board"
+ 	select SYS_CACHE_SHIFT_6
+@@ -119,6 +122,7 @@ source "board/spacemit/bananapi-f3/Kconfig"
+ source "board/starfive/visionfive2/Kconfig"
+ source "board/thead/th1520_lpi4a/Kconfig"
+ source "board/xilinx/mbv/Kconfig"
++source "board/openhwgroup/cva6_genesysII/Kconfig"
+ 
+ # platform-specific options below
+ source "arch/riscv/cpu/andes/Kconfig"
+diff --git a/board/openhwgroup/cva6_genesysII/Kconfig b/board/openhwgroup/cva6_genesysII/Kconfig
+new file mode 100644
+index 00000000000..011e3aa29f8
+--- /dev/null
++++ b/board/openhwgroup/cva6_genesysII/Kconfig
+@@ -0,0 +1,30 @@
++if TARGET_OPENHWGROUP_CVA6_GENESYSII
++
++config SYS_BOARD
++	default "cva6_genesysII"
++
++config SYS_VENDOR
++	default "openhwgroup"
++
++config SYS_CPU
++	default "generic"
++
++config SYS_CONFIG_NAME
++	default "openhwgroup_cva6_genesysII"
++
++config TEXT_BASE
++	hex
++	default 0x80200000 if SPL
++	default 0x80000000 if !RISCV_SMODE
++	default 0x80200000 if RISCV_SMODE && ARCH_RV64I
++	default 0x80400000 if RISCV_SMODE && ARCH_RV32I
++
++config SPL_TEXT_BASE
++	hex
++	default 0x08000000
++
++config BOARD_SPECIFIC_OPTIONS # dummy
++    def_bool y
++    select GENERIC_RISCV
++
++endif
+diff --git a/board/openhwgroup/cva6_genesysII/Makefile b/board/openhwgroup/cva6_genesysII/Makefile
+new file mode 100644
+index 00000000000..b5d48306279
+--- /dev/null
++++ b/board/openhwgroup/cva6_genesysII/Makefile
+@@ -0,0 +1 @@
++obj-y	+= cva6.o
+diff --git a/board/openhwgroup/cva6_genesysII/cva6.c b/board/openhwgroup/cva6_genesysII/cva6.c
+new file mode 100644
+index 00000000000..f2c558dce7b
+--- /dev/null
++++ b/board/openhwgroup/cva6_genesysII/cva6.c
+@@ -0,0 +1,9 @@
++#include <init.h>
++
++int board_init(void) {
++  return 0;
++}
++
++int ft_board_setup(void *fdt, struct bd_info *bd) {
++  return 0;
++}
+diff --git a/include/configs/openhwgroup_cva6_genesysII.h b/include/configs/openhwgroup_cva6_genesysII.h
+new file mode 100644
+index 00000000000..8449538c152
+--- /dev/null
++++ b/include/configs/openhwgroup_cva6_genesysII.h
+@@ -0,0 +1,8 @@
++#ifndef __CONFIG_H
++#define __CONFIG_H
++
++#include <linux/sizes.h>
++
++#define CFG_SYS_SDRAM_BASE 0x80000000
++
++#endif
+-- 
+2.39.5
+

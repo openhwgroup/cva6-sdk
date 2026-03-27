@@ -1,0 +1,4 @@
+config BR2_PACKAGE_CACHETEST
+    bool "cachetest"
+    help
+      Benchmark for the cache subsystem

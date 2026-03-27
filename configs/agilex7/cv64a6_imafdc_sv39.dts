@@ -1,0 +1,104 @@
+/dts-v1/;
+
+/ {
+  #address-cells = <2>;
+  #size-cells = <2>;
+  compatible = "eth,cva6-bare-dev";
+  model = "eth,cva6-bare";
+  chosen {
+    stdout-path = "/soc/uart@10000000:115200";
+    //tick-timer =  "/cpus/cpu@0";
+  };
+  cpus {
+    #address-cells = <1>;
+    #size-cells = <0>;
+    timebase-frequency = <50000000>; // 50 MHz
+    CPU0: cpu@0 {
+      clock-frequency = <100000000>; // 100 MHz
+      device_type = "cpu";
+      reg = <0>;
+      status = "okay";
+      compatible = "eth, cva6", "riscv";
+      riscv,isa = "rv64imafdc";
+      mmu-type = "riscv,sv39";
+      tlb-split;
+      // HLIC - hart local interrupt controller
+      CPU0_intc: interrupt-controller {
+        #interrupt-cells = <1>;
+        interrupt-controller;
+        compatible = "riscv,cpu-intc";
+      };
+    };
+  };
+  memory@80000000 {
+    device_type = "memory";
+    reg = <0x0 0x80000000 0x0 0x40000000>;
+  };
+  L26: soc {
+    #address-cells = <2>;
+    #size-cells = <2>;
+    compatible = "eth,cva6-bare-soc", "simple-bus";
+    ranges;
+    clint@2000000 {
+      compatible = "riscv,clint0";
+      interrupts-extended = <&CPU0_intc 3 &CPU0_intc 7>;
+      reg = <0x0 0x2000000 0x0 0xc0000>;
+      reg-names = "control";
+    };
+    PLIC0: interrupt-controller@c000000 {
+      #address-cells = <0>;
+      #interrupt-cells = <1>;
+      compatible = "riscv,plic0";
+      interrupt-controller;
+      interrupts-extended = <&CPU0_intc 11 &CPU0_intc 9>;
+      reg = <0x0 0xc000000 0x0 0x4000000>;
+      riscv,max-priority = <7>;
+      riscv,ndev = <30>;
+    };
+//  debug-controller@0 {
+//    compatible = "riscv,debug-013";
+//    interrupts-extended = <&CPU0_intc 65535>;
+//    reg = <0x0 0x0 0x0 0x1000>;
+//    reg-names = "control";
+//  };
+    uart@10000000 {
+      compatible = "ns16750", "ns16550";
+      reg = <0x0 0x10000000 0x0 0x1000>;
+      clock-frequency = <100000000>;
+      current-speed = <115200>;
+      interrupt-parent = <&PLIC0>;
+      interrupts = <1>;
+      reg-shift = <0>; // regs are spaced on 32 bit boundary
+      reg-io-width = <1>; // only 32-bit access are supported
+    };
+    timer@18000000 {
+      compatible = "pulp,apb_timer";
+      interrupts = <0x00000004 0x00000005 0x00000006 0x00000007>;
+      reg = <0x00000000 0x18000000 0x00000000 0x00001000>;
+      interrupt-parent = <&PLIC0>;
+      reg-names = "control";
+    };
+    clk_mmc: clk_mmc {
+      compatible = "fixed-clock";
+      #clock-cells = <0>;
+      clock-frequency = <50000000>;
+    };
+    mmc: dwmmc0@ff808000 {
+      #address-cells = <1>;
+      #size-cells = <0>;
+      compatible = "snps,dw-mshc";
+      reg = <0x0 0xff808000 0x0 0x1000>;
+      fifo-depth = <0x400>;
+      fifo-mode = <1>;
+      interrupt-parent = <&PLIC0>;
+      interrupts = <0x8>;
+      clocks = <&clk_mmc>,<&clk_mmc>;
+      clock-names = "biu","ciu";
+      status = "okay";
+      #cap-sd-highspeed;
+      broken-cd;
+      disable-wp;
+      bus-width = <4>;
+    };
+  };
+};

@@ -1,0 +1,8 @@
+RISCV_TESTS_VERSION = 8d1e1ca3861bee1e3e26e4e62ec4fe4cdd8503d6
+RISCV_TESTS_SITE = https://github.com/riscv-software-src/riscv-tests.git
+RISCV_TESTS_SITE_METHOD = git
+RISCV_TESTS_GIT_SUBMODULES = YES
+RISCV_TESTS_LICENSE_FILES = LICENSE
+RISCV_TESTS_AUTORECONF = YES
+
+$(eval $(autotools-package))
