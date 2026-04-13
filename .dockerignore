@@ -1,6 +1,6 @@
+/build*/
 /install*/
 fitImage.its
-buildroot/output
 .git
 .github
 .vscode

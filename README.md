@@ -113,7 +113,7 @@ This project follows the common RISC-V boot procedure.
 
 ```sh
 make XLEN=64 BOARD=qemu
-buildroot/output/host/bin/qemu-system-riscv64 \
+build64_qemu/host/bin/qemu-system-riscv64 \
     -M virt -cpu rv64 -m 1G -nographic \
     -bios install64_qemu/fw_dynamic.bin \
     -initrd install64_qemu/rootfs.cpio \
