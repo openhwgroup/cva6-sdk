@@ -1,5 +1,5 @@
 XLEN     ?= 64
-BOARD    ?= "genesys2"
+BOARD    ?= genesys2
 OUTPUT   ?= $(PWD)/install$(XLEN)_$(BOARD)
 
 buildroot_defconfig_path = ../configs/$(BOARD)/buildroot$(XLEN)_defconfig

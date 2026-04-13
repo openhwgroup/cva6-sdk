@@ -63,7 +63,7 @@ Tested with the following CVA6 configs:
 - **./br2-ext-tree/**: Extension tree for buildroot. This directory contains packages which are not part of the official buildroot package list.
 - **./buildroot/**: The mainline buildroot repository without any custom changes. It is a git submodule.
 - **./configs/**: Contains config files including `genimage.cfg` which defines the structure and content of the final image `sdcard.img`.
-- **./patches/**: Contains patches for components required to them on the selected board.
+- **./patches/**: Contains patches for components (e.g. U-Boot board support) required to run them on the selected board.
 - **./rootfs/**: The filesystem overlay. Put files here if you want to use them on your target system. Contains key files to prevent them having to be generated on each boot. Explained in further detail below.
 - **./Dockerfile**: Dockerfile to build the image. Explained in further detail below.
 - **./fitImage.its.template**: This defines the content of the [Flat Image Tree (FIT)](https://docs.u-boot.org/en/stable/usage/fit/howto.html) used by U-Boot to package the boot components it is meant to read and launch. The FIT image is part of the `sdcard.img`.

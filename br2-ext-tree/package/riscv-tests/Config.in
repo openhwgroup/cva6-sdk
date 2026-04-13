@@ -5,4 +5,4 @@ config BR2_PACKAGE_RISCV_TESTS
       Unit tests for RISC-V processors.
       Requires a multilib toolchain, which builds all ABIs for 32-bit and 64-bit.
       E.g., ilp32, ilp32d, etc. The included buildroot toolchain does not support this, neither for 32-bit nor 64-bit.
-      Therefore, an external toolchian would be required which enables mulitlib, e.g., https://github.com/riscv-collab/riscv-gnu-toolchain
+      Therefore, an external toolchain would be required which enables multilib, e.g., https://github.com/riscv-collab/riscv-gnu-toolchain

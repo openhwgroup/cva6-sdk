@@ -30,7 +30,7 @@ sed -e "s/%IMAGE_NAME%/${IMAGE_NAME}/" \
     $ITS_TEMPLATE_FILE > $ITS_FILE
 
 # Create FIT image
-output/host/bin/mkimage -f $ITS_FILE $FIT_BINARY_NAME
+${HOST_DIR}/bin/mkimage -f $ITS_FILE $FIT_BINARY_NAME
 
 # Create flashable sdcard.img
 support/scripts/genimage.sh -c $GENIMAGE_CFG
