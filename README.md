@@ -64,10 +64,11 @@ Tested with the following CVA6 configs:
 - **./buildroot/**: The mainline buildroot repository without any custom changes. It is a git submodule.
 - **./configs/**: Contains config files including `genimage.cfg` which defines the structure and content of the final image `sdcard.img`.
 - **./patches/**: Contains patches for components (e.g. U-Boot board support) required to run them on the selected board.
-- **./rootfs/**: The filesystem overlay. Put files here if you want to use them on your target system. Contains key files to prevent them having to be generated on each boot. Explained in further detail below.
+- **./rootfs/**: The filesystem overlay. Put files here if you want to use them on your target system.
 - **./Dockerfile**: Dockerfile to build the image. Explained in further detail below.
 - **./fitImage.its.template**: This defines the content of the [Flat Image Tree (FIT)](https://docs.u-boot.org/en/stable/usage/fit/howto.html) used by U-Boot to package the boot components it is meant to read and launch. The FIT image is part of the `sdcard.img`.
 - **./permission_table.txt**: Used by buildroot to set the permissions of custom files on the target. 
+- **./post_build.sh**: Called by buildroot after the target filesystem is assembled. Generates SSH host keys at build time so the target does not have to generate them on each boot.
 - **./post_image.sh**: Called by buildroot after all components have been built. It packages them into the final image `sdcard.img`.
 
 ## Structure of final image `sdcard.img` (for genesys2)
@@ -133,9 +134,8 @@ See [Using the generated toolchain outside Buildroot](https://buildroot.org/down
 ## OpenOCD - Optional
 If you really need and want to debug on an FPGA/ASIC target the installation instructions are [here](https://github.com/riscv-collab/riscv-openocd).
 
-## Pre-generated SSH keys
-The directory at `rootfs/etc/ssh` adds pre-generated public/private key pairs on the target to overcome the painful delay of generating it at boot-time
-(which happens every time because the root file system is volatile). Do not use these keys on more than one device, and especially not in productive environments as the private keys are revealed in this directory.
+## SSH host keys
+SSH host keys are generated at build time by `post_build.sh` using `ssh-keygen` on the build host. This avoids the costly key generation on the target at each boot. Keys are only generated once per clean build; incremental builds keep the same keys. If `ssh-keygen` is not available on the build host, key generation is skipped and OpenSSH's init script generates them on boot instead.
 
 ## MAC address
 Each Genesys 2 board stores a MAC address in a special designated storage area, also written on a sticker on its bottom side.
