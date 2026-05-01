@@ -3,7 +3,7 @@
 This repository houses a set of RISCV tools for the [CVA6 core](https://github.com/openhwgroup/cva6).
 Most importantly, it **does not contain openOCD**.
 
-As of now, the SDK has been designed and tested for the **Digilent Genesys 2** and **Agilex 7** FPGA boards. To implement and test SDK for other boards in this repository, you can volunteer to create and drive a new project at the OpenHW Group.
+As of now, the SDK has been designed and tested for the **Digilent Genesys 2**, **Agilex 7**, and **Alveo U200** FPGA boards. To implement and test SDK for other boards in this repository, you can volunteer to create and drive a new project at the OpenHW Group.
 
 ## Quickstart
 
@@ -50,6 +50,16 @@ Use the command `lsblk` or `fdisk -l` to find it.
 ### Windows
 
 The final image file `install64_genesys2/sdcard.img` can be flashed to an SD card with [Rufus](https://rufus.ie).
+
+## Boot on Alveo U200 (`BOARD=u200`)
+
+The Alveo U200 has no SD card; it is a PCIe accelerator card. Build with:
+
+```console
+$ make XLEN=64 BOARD=u200
+```
+
+The build produces `install64_u200/boot.bin`, a single flat image consisting of `fw_payload.bin` (OpenSBI + U-Boot) at offset 0 and `fitImage.itb` (kernel + DTB + ramdisk) at offset 128 MiB. The host loads `boot.bin` over PCIe into DRAM at `0x80000000` and releases the core from reset. Then, OpenSBI hands off to U-Boot, which runs `bootm 0x88000000` to launch the FIT image. No `sdcard.img` is produced for this board.
 
 ## CVA6 compatibility
 
