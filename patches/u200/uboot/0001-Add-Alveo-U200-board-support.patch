@@ -1,0 +1,143 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Victor Jimenez <victor.jimenez@colorado.edu>
+Subject: [PATCH] Add Alveo U200 board support
+
+Adds a CVA6 target for the Xilinx/AMD Alveo U200 PCIe accelerator card.
+The U200 has no SD card; the host loads a single boot image into DRAM
+over PCIe at 0x80000000 and releases the core from reset, so the
+defconfig needs no MMC/storage support.
+
+The board overrides the default __weak board_get_usable_ram_top()
+(defined in common/board_f.c) to cap U-Boot relocation at SDRAM_BASE
++ 1 GiB. Without the override, U-Boot would relocate to the top of
+usable RAM, i.e., ~16 GiB into DDR4 on this 16 GiB-DRAM-from-0x80000000
+layout, which the U200 design has not been validated against. Capping
+to the low 1 GiB keeps relocation in the known-good DDR4 range. The
+full memory is still advertised to Linux via the FDT.
+
+Signed-off-by: Victor Jimenez <victor.jimenez@colorado.edu>
+---
+ arch/riscv/Kconfig                      |  3 +++
+ board/openhwgroup/cva6_u200/Kconfig     | 30 +++++++++++++++++++++++++
+ board/openhwgroup/cva6_u200/Makefile    |  1 +
+ board/openhwgroup/cva6_u200/cva6.c      | 25 ++++++++++++++++++++++
+ include/configs/openhwgroup_cva6_u200.h | 14 +++++++++++++
+ 5 files changed, 73 insertions(+)
+ create mode 100644 board/openhwgroup/cva6_u200/Kconfig
+ create mode 100644 board/openhwgroup/cva6_u200/Makefile
+ create mode 100644 board/openhwgroup/cva6_u200/cva6.c
+ create mode 100644 include/configs/openhwgroup_cva6_u200.h
+
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -43,6 +43,9 @@ config TARGET_SIFIVE_UNMATCHED
+ 	bool "Support SiFive Unmatched Board"
+ 	select SYS_CACHE_SHIFT_6
+ 
++config TARGET_OPENHWGROUP_CVA6_U200
++	bool "Target cva6 architecture on Alveo U200 board (PCIe RAM boot)"
++
+ config TARGET_SIPEED_MAIX
+ 	bool "Support Sipeed Maix Board"
+ 	select SYS_CACHE_SHIFT_6
+@@ -119,6 +122,7 @@ source "board/spacemit/bananapi-f3/Kconfig"
+ source "board/starfive/visionfive2/Kconfig"
+ source "board/thead/th1520_lpi4a/Kconfig"
+ source "board/xilinx/mbv/Kconfig"
++source "board/openhwgroup/cva6_u200/Kconfig"
+ 
+ # platform-specific options below
+ source "arch/riscv/cpu/andes/Kconfig"
+diff --git a/board/openhwgroup/cva6_u200/Kconfig b/board/openhwgroup/cva6_u200/Kconfig
+new file mode 100644
+--- /dev/null
++++ b/board/openhwgroup/cva6_u200/Kconfig
+@@ -0,0 +1,30 @@
++if TARGET_OPENHWGROUP_CVA6_U200
++
++config SYS_BOARD
++	default "cva6_u200"
++
++config SYS_VENDOR
++	default "openhwgroup"
++
++config SYS_CPU
++	default "generic"
++
++config SYS_CONFIG_NAME
++	default "openhwgroup_cva6_u200"
++
++config TEXT_BASE
++	hex
++	default 0x80200000 if SPL
++	default 0x80000000 if !RISCV_SMODE
++	default 0x80200000 if RISCV_SMODE && ARCH_RV64I
++	default 0x80400000 if RISCV_SMODE && ARCH_RV32I
++
++config SPL_TEXT_BASE
++	hex
++	default 0x08000000
++
++config BOARD_SPECIFIC_OPTIONS # dummy
++    def_bool y
++    select GENERIC_RISCV
++
++endif
+diff --git a/board/openhwgroup/cva6_u200/Makefile b/board/openhwgroup/cva6_u200/Makefile
+new file mode 100644
+--- /dev/null
++++ b/board/openhwgroup/cva6_u200/Makefile
+@@ -0,0 +1 @@
++obj-y	+= cva6.o
+diff --git a/board/openhwgroup/cva6_u200/cva6.c b/board/openhwgroup/cva6_u200/cva6.c
+new file mode 100644
+--- /dev/null
++++ b/board/openhwgroup/cva6_u200/cva6.c
+@@ -0,0 +1,25 @@
++#include <init.h>
++#include <asm/global_data.h>
++#include <linux/sizes.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++int board_init(void)
++{
++	return 0;
++}
++
++phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
++{
++	phys_addr_t usable_top = CONFIG_SYS_SDRAM_BASE + SZ_1G;
++
++	if (gd->ram_top > usable_top)
++		return usable_top;
++
++	return gd->ram_top;
++}
++
++int ft_board_setup(void *fdt, struct bd_info *bd)
++{
++	return 0;
++}
+diff --git a/include/configs/openhwgroup_cva6_u200.h b/include/configs/openhwgroup_cva6_u200.h
+new file mode 100644
+--- /dev/null
++++ b/include/configs/openhwgroup_cva6_u200.h
+@@ -0,0 +1,14 @@
++#ifndef __CONFIG_H
++#define __CONFIG_H
++
++#include <linux/sizes.h>
++
++#define CONFIG_SYS_SDRAM_BASE		0x80000000
++#define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_2M)
++
++#define CONFIG_SYS_LOAD_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_2M)
++
++#define CONFIG_SYS_MALLOC_LEN       SZ_8M
++#define CONFIG_SYS_BOOTM_LEN        SZ_128M
++
++#endif
+--
+2.39.5
