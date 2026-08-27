@@ -1,4 +1,4 @@
-From fc1277c36534c541f4bb83ea6016386ae6423838 Mon Sep 17 00:00:00 2001
+From cea1c8e7ff6901fd45d1d312af25d82de609faa7 Mon Sep 17 00:00:00 2001
 From: Jonathan Richard Robert Kimmitt <jrrk2@cl.cam.ac.uk>
 Date: Wed, 18 Feb 2026 10:35:10 +0100
 Subject: [PATCH] Incorporate lowrisc drivers for latest kernel release
@@ -17,19 +17,19 @@ Signed-off-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
  drivers/net/ethernet/Makefile                 |   1 +
  drivers/net/ethernet/lowrisc/Kconfig          |  26 +
  drivers/net/ethernet/lowrisc/Makefile         |   6 +
- drivers/net/ethernet/lowrisc/lowrisc_100MHz.c | 800 ++++++++++++++++++
+ drivers/net/ethernet/lowrisc/lowrisc_100MHz.c | 799 ++++++++++++++++++
  drivers/net/ethernet/lowrisc/lowrisc_100MHz.h |  55 ++
- 6 files changed, 889 insertions(+)
+ 6 files changed, 888 insertions(+)
  create mode 100644 drivers/net/ethernet/lowrisc/Kconfig
  create mode 100644 drivers/net/ethernet/lowrisc/Makefile
  create mode 100644 drivers/net/ethernet/lowrisc/lowrisc_100MHz.c
  create mode 100644 drivers/net/ethernet/lowrisc/lowrisc_100MHz.h
 
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index 4a1b368ca..c40d6078b 100644
+index b8f70e2a1763..9915d7ff4723 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
-@@ -131,6 +131,7 @@ source "drivers/net/ethernet/microsoft/Kconfig"
+@@ -117,6 +117,7 @@ source "drivers/net/ethernet/microsoft/Kconfig"
  source "drivers/net/ethernet/moxa/Kconfig"
  source "drivers/net/ethernet/mucse/Kconfig"
  source "drivers/net/ethernet/myricom/Kconfig"
@@ -38,10 +38,10 @@ index 4a1b368ca..c40d6078b 100644
  config FEALNX
  	tristate "Myson MTD-8xx PCI Ethernet support"
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index 2e18df8ca..dfef7808e 100644
+index 57344fec6ce0..66e3c420d399 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
-@@ -57,6 +57,7 @@ obj-$(CONFIG_KORINA) += korina.o
+@@ -54,6 +54,7 @@ obj-$(CONFIG_KORINA) += korina.o
  obj-$(CONFIG_LANTIQ_ETOP) += lantiq_etop.o
  obj-$(CONFIG_LANTIQ_XRX200) += lantiq_xrx200.o
  obj-$(CONFIG_NET_VENDOR_LITEX) += litex/
@@ -51,7 +51,7 @@ index 2e18df8ca..dfef7808e 100644
  obj-$(CONFIG_NET_VENDOR_MELLANOX) += mellanox/
 diff --git a/drivers/net/ethernet/lowrisc/Kconfig b/drivers/net/ethernet/lowrisc/Kconfig
 new file mode 100644
-index 000000000..ab95f70ab
+index 000000000000..ab95f70ab9d8
 --- /dev/null
 +++ b/drivers/net/ethernet/lowrisc/Kconfig
 @@ -0,0 +1,26 @@
@@ -83,7 +83,7 @@ index 000000000..ab95f70ab
 +endif # NET_VENDOR_LOWRISC
 diff --git a/drivers/net/ethernet/lowrisc/Makefile b/drivers/net/ethernet/lowrisc/Makefile
 new file mode 100644
-index 000000000..4eb3adee1
+index 000000000000..4eb3adee161d
 --- /dev/null
 +++ b/drivers/net/ethernet/lowrisc/Makefile
 @@ -0,0 +1,6 @@
@@ -95,10 +95,10 @@ index 000000000..4eb3adee1
 +CFLAGS_lowrisc_100MHz.o := -DDEBUG
 diff --git a/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c b/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c
 new file mode 100644
-index 000000000..c0c0dab68
+index 000000000000..d30d8e5b1ff3
 --- /dev/null
 +++ b/drivers/net/ethernet/lowrisc/lowrisc_100MHz.c
-@@ -0,0 +1,800 @@
+@@ -0,0 +1,799 @@
 +/*
 + * Lowrisc Ether100MHz Linux driver for the Lowrisc Ethernet 100MHz device.
 + *
@@ -148,7 +148,6 @@ index 000000000..c0c0dab68
 +#include <linux/delay.h>
 +#include <linux/platform_device.h>
 +#include <linux/mdio-bitbang.h>
-+#include <linux/mdio-gpio.h>
 +#include "lowrisc_100MHz.h"
 +
 +#define DRIVER_AUTHOR "WOOJUNG HUH <woojung.huh@microchip.com>"
@@ -901,7 +900,7 @@ index 000000000..c0c0dab68
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/net/ethernet/lowrisc/lowrisc_100MHz.h b/drivers/net/ethernet/lowrisc/lowrisc_100MHz.h
 new file mode 100644
-index 000000000..9d227c10d
+index 000000000000..9d227c10dd36
 --- /dev/null
 +++ b/drivers/net/ethernet/lowrisc/lowrisc_100MHz.h
 @@ -0,0 +1,55 @@
@@ -961,5 +960,5 @@ index 000000000..9d227c10d
 +
 +#endif
 -- 
-2.39.5
+2.47.3
 
